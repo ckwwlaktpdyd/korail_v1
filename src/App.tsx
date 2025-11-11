@@ -2,19 +2,34 @@ import { useState } from 'react';
 import { Home, Bell, User, ArrowLeftRight, Calendar, Users, Train } from 'lucide-react';
 import QuickBooking from './components/QuickBooking';
 import BookingModal from './components/BookingModal';
+import PaymentModal from './components/PaymentModal';
+import PaymentSuccessModal from './components/PaymentSuccessModal';
 
 function App() {
   const [showModal, setShowModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [bookingData, setBookingData] = useState({
     departure: '서울',
     arrival: '부산',
     departureTime: '05:13',
     arrivalTime: '06:12',
-    date: '2025.11.10(월)',
+    date: '2025년 11월 1일 (화)',
     passengers: { adults: 1, children: 0, infants: 0 },
     trainType: '일반실',
-    timeSlot: '05시 이후'
+    timeSlot: '05시 이후',
+    trainNumber: 'KTX 061'
   });
+
+  const handlePaymentConfirm = () => {
+    setShowPaymentModal(false);
+    setShowSuccessModal(true);
+  };
+
+  const handleViewTicket = () => {
+    setShowSuccessModal(false);
+    alert('승차권 확인 페이지로 이동합니다');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -133,6 +148,27 @@ function App() {
           bookingData={bookingData}
           onClose={() => setShowModal(false)}
           onUpdate={setBookingData}
+          onNext={() => {
+            setShowModal(false);
+            setShowPaymentModal(true);
+          }}
+        />
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <PaymentModal
+          bookingData={bookingData}
+          onClose={() => setShowPaymentModal(false)}
+          onConfirm={handlePaymentConfirm}
+        />
+      )}
+
+      {/* Payment Success Modal */}
+      {showSuccessModal && (
+        <PaymentSuccessModal
+          onClose={() => setShowSuccessModal(false)}
+          onViewTicket={handleViewTicket}
         />
       )}
     </div>

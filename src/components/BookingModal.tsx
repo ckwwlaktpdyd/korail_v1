@@ -16,9 +16,10 @@ interface BookingModalProps {
   };
   onClose: () => void;
   onUpdate: (data: any) => void;
+  onNext: () => void;
 }
 
-export default function BookingModal({ bookingData, onClose, onUpdate }: BookingModalProps) {
+export default function BookingModal({ bookingData, onClose, onUpdate, onNext }: BookingModalProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showPassengerPicker, setShowPassengerPicker] = useState(false);
   const [showTrainType, setShowTrainType] = useState(false);
@@ -173,7 +174,7 @@ export default function BookingModal({ bookingData, onClose, onUpdate }: Booking
 
           {/* Action Button */}
           <button
-            onClick={onClose}
+            onClick={onNext}
             className="w-full py-4 bg-blue-600 text-white text-base font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg"
           >
             다음 &gt;
