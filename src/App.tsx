@@ -1,23 +1,26 @@
 import { useState } from 'react';
 import { Home, Bell, User, ArrowLeftRight, Calendar, Users, Train } from 'lucide-react';
 import QuickBooking from './components/QuickBooking';
+import QuickBookingList from './components/QuickBookingList';
 import BookingModal from './components/BookingModal';
 import PaymentModal from './components/PaymentModal';
 import PaymentSuccessModal from './components/PaymentSuccessModal';
+import { QuickBooking as QuickBookingType, supabase } from './lib/supabase';
 
 function App() {
   const [showModal, setShowModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [refreshQuickPurchases, setRefreshQuickPurchases] = useState(0);
   const [bookingData, setBookingData] = useState({
     departure: '서울',
     arrival: '부산',
     departureTime: '05:13',
     arrivalTime: '06:12',
-    date: '2025년 11월 1일 (화)',
+    date: '2025.11.01(금)',
     passengers: { adults: 1, children: 0, infants: 0 },
     trainType: '일반실',
-    timeSlot: '05시 이후',
+    timeSlot: '8시 이후',
     trainNumber: 'KTX 061'
   });
 
@@ -29,6 +32,105 @@ function App() {
   const handleViewTicket = () => {
     setShowSuccessModal(false);
     alert('승차권 확인 페이지로 이동합니다');
+  };
+
+  const handleSelectBooking = (booking: QuickBookingType) => {
+    const timeSlot = booking.departure_time || '8시 이후';
+    setBookingData({
+      ...bookingData,
+      departure: booking.departure,
+      arrival: booking.arrival,
+      trainNumber: `${booking.train_type} 061`,
+      timeSlot: timeSlot,
+      passengers: {
+        adults: booking.adults,
+        children: booking.children,
+        infants: booking.infants,
+      },
+    });
+  };
+
+  const handleQuickPurchase = (booking: QuickBookingType) => {
+    const timeSlot = booking.departure_time || '8시 이후';
+
+    // Extract time from departure_time (e.g., "오전 09:00" -> "09:00")
+    const timeMatch = timeSlot.match(/(\d{2}):(\d{2})/);
+    const departureTime = timeMatch ? `${timeMatch[1]}:${timeMatch[2]}` : '14:00';
+
+    // Calculate arrival time (add 1 hour for demo)
+    const [hours, minutes] = departureTime.split(':').map(Number);
+    const arrivalHour = (hours + 1).toString().padStart(2, '0');
+    const arrivalTime = `${arrivalHour}:${minutes.toString().padStart(2, '0')}`;
+
+    setBookingData({
+      ...bookingData,
+      departure: booking.departure,
+      arrival: booking.arrival,
+      trainNumber: `${booking.train_type} 061`,
+      timeSlot: timeSlot,
+      departureTime: departureTime,
+      arrivalTime: arrivalTime,
+      passengers: {
+        adults: booking.adults,
+        children: booking.children,
+        infants: booking.infants,
+      },
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handleQuickPurchaseSaved = async (bookingId: string, openModal: boolean = false) => {
+    try {
+      const { data, error } = await supabase
+        .from('quick_bookings')
+        .select('*')
+        .eq('id', bookingId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setRefreshQuickPurchases(prev => prev + 1);
+
+        if (openModal) {
+          setBookingData({
+            ...bookingData,
+            departure: data.departure,
+            arrival: data.arrival,
+            trainNumber: `${data.train_type} 061`,
+            passengers: {
+              adults: data.adults,
+              children: data.children,
+              infants: data.infants,
+            },
+          });
+          setShowModal(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load quick booking:', error);
+    }
+  };
+
+  const handleUpdatePassengers = (passengers: { adults: number; children: number; infants: number }) => {
+    setBookingData({
+      ...bookingData,
+      passengers,
+    });
+  };
+
+  const handleUpdateDate = (date: string) => {
+    setBookingData({
+      ...bookingData,
+      date,
+    });
+  };
+
+  const handleUpdateTime = (time: string) => {
+    setBookingData({
+      ...bookingData,
+      timeSlot: time,
+    });
   };
 
   return (
@@ -51,42 +153,17 @@ function App() {
         {/* Quick Booking Section */}
         <QuickBooking
           bookingData={bookingData}
-          onOpenModal={() => setShowModal(true)}
+          onUpdatePassengers={handleUpdatePassengers}
+          onUpdateDate={handleUpdateDate}
+          onUpdateTime={handleUpdateTime}
         />
 
         {/* Fast Booking Section */}
-        <section className="px-5 mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">빠른 예매</h2>
-            <button className="text-sm text-blue-600 font-medium hover:text-blue-700">
-              더보기
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all text-left"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">집</span>
-                <span className="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">KTX</span>
-              </div>
-              <div className="text-sm text-gray-900 font-medium">서울 → 부산</div>
-            </button>
-
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all text-left"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">출장</span>
-                <span className="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">KTX</span>
-              </div>
-              <div className="text-sm text-gray-900 font-medium">광명 → 부산</div>
-            </button>
-          </div>
-        </section>
+        <QuickBookingList
+          onSelectBooking={handleSelectBooking}
+          onQuickPurchaseSaved={handleQuickPurchaseSaved}
+          onQuickPurchase={handleQuickPurchase}
+        />
 
         {/* Services Section */}
         <section className="px-5 mt-8">
