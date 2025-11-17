@@ -9,6 +9,8 @@ interface SeatSelectionProps {
   onSaveAsQuickBooking?: (bookingData: any) => Promise<string | null>;
   onDeleteQuickBooking?: (id: string) => Promise<void>;
   onOpenQuickPurchase?: (bookingData: any) => void;
+  onSaveBookingHistory?: (bookingData: any) => Promise<void>;
+  onToggleQuickPurchase?: (id: string, isQuickPurchase: boolean) => Promise<void>;
   trainInfo: {
     trainType: string;
     trainNumber: string;
@@ -31,12 +33,13 @@ interface Seat {
   side: 'left' | 'right';
 }
 
-export function SeatSelection({ onBack, onBackToHome, onSaveAsQuickBooking, onDeleteQuickBooking, onOpenQuickPurchase, trainInfo }: SeatSelectionProps) {
+export function SeatSelection({ onBack, onBackToHome, onSaveAsQuickBooking, onDeleteQuickBooking, onOpenQuickPurchase, onSaveBookingHistory, onToggleQuickPurchase, trainInfo }: SeatSelectionProps) {
   const [selectedCar, setSelectedCar] = useState(4);
   const [seats, setSeats] = useState<Seat[]>([]);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
+  const [finalPaymentPrice, setFinalPaymentPrice] = useState<number>(0);
 
   const totalCars = 10;
   const seatsPerCar = 63;
@@ -330,19 +333,22 @@ export function SeatSelection({ onBack, onBackToHome, onSaveAsQuickBooking, onDe
             seatNumbers: selectedSeats.sort((a, b) => a - b),
           }}
           onClose={() => setShowPaymentModal(false)}
-          onConfirm={() => {
+          onConfirm={(totalPrice) => {
+            setFinalPaymentPrice(totalPrice);
             setShowPaymentModal(false);
             setShowPaymentSuccessModal(true);
           }}
           onSearchOtherTrains={() => {
             setShowPaymentModal(false);
             setSelectedSeats([]);
+            onBack();
           }}
         />
       )}
 
       {showPaymentSuccessModal && (
         <PaymentSuccessModal
+          isFromQuickPurchase={false}
           onClose={() => {
             setShowPaymentSuccessModal(false);
             setSelectedSeats([]);
@@ -367,6 +373,8 @@ export function SeatSelection({ onBack, onBackToHome, onSaveAsQuickBooking, onDe
           }}
           onDeleteQuickBooking={onDeleteQuickBooking}
           onOpenQuickPurchase={onOpenQuickPurchase}
+          onSaveBookingHistory={onSaveBookingHistory}
+          onToggleQuickPurchase={onToggleQuickPurchase}
           bookingData={{
             departure: trainInfo.departureStation,
             arrival: trainInfo.arrivalStation,
@@ -378,6 +386,7 @@ export function SeatSelection({ onBack, onBackToHome, onSaveAsQuickBooking, onDe
             trainNumber: trainInfo.trainNumber,
             carNumber: selectedCar,
             seatNumbers: selectedSeats.sort((a, b) => a - b),
+            totalPrice: finalPaymentPrice,
           }}
         />
       )}

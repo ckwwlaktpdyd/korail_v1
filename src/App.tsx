@@ -9,14 +9,14 @@ import PassengerPicker from './components/PassengerPicker';
 import PaymentModal from './components/PaymentModal';
 import PaymentSuccessModal from './components/PaymentSuccessModal';
 import { TrainSearchResults } from './components/TrainSearchResults';
-import { QuickBooking, getQuickBookings, addQuickBooking, deleteQuickBookings, updateQuickBooking } from './lib/supabase';
+import { QuickBooking, getQuickBookings, getBookingHistory, getQuickPurchases, addQuickBooking, deleteQuickBookings, updateQuickBooking, saveBookingHistory, toggleQuickPurchase } from './lib/supabase';
 
 function App() {
   const [tripType, setTripType] = useState<'oneway' | 'roundtrip'>('oneway');
-  const [departure, setDeparture] = useState('서울');
-  const [arrival, setArrival] = useState('부산');
-  const [date, setDate] = useState('2025.11.18(화)');
-  const [time, setTime] = useState('10시 이후');
+  const [departure, setDeparture] = useState('선택');
+  const [arrival, setArrival] = useState('선택');
+  const [date, setDate] = useState('일정을 선택해주세요.');
+  const [time, setTime] = useState('선택');
   const [passengers, setPassengers] = useState({ adults: 1, children: 0, infants: 0 });
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
   const [showPassengerPicker, setShowPassengerPicker] = useState(false);
@@ -24,6 +24,8 @@ function App() {
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<{ departure: string; arrival: string } | null>(null);
   const [quickBookings, setQuickBookings] = useState<QuickBooking[]>([]);
+  const [bookingHistory, setBookingHistory] = useState<QuickBooking[]>([]);
+  const [quickPurchases, setQuickPurchases] = useState<QuickBooking[]>([]);
   const [isRecentTripsModalOpen, setIsRecentTripsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<QuickBooking | null>(null);
   const [isStationPickerOpen, setIsStationPickerOpen] = useState(false);
@@ -36,11 +38,23 @@ function App() {
 
   useEffect(() => {
     loadQuickBookings();
+    loadBookingHistory();
+    loadQuickPurchases();
   }, []);
 
   const loadQuickBookings = async () => {
     const bookings = await getQuickBookings();
     setQuickBookings(bookings);
+  };
+
+  const loadBookingHistory = async () => {
+    const history = await getBookingHistory();
+    setBookingHistory(history);
+  };
+
+  const loadQuickPurchases = async () => {
+    const purchases = await getQuickPurchases();
+    setQuickPurchases(purchases);
   };
 
   const handleSwapStations = () => {
@@ -101,10 +115,39 @@ function App() {
   const [isPaymentSuccessModalOpen, setIsPaymentSuccessModalOpen] = useState(false);
   const [isQuickPurchaseModalOpen, setIsQuickPurchaseModalOpen] = useState(false);
   const [quickPurchaseData, setQuickPurchaseData] = useState<{ departure: string; arrival: string } | null>(null);
+  const [currentBookingData, setCurrentBookingData] = useState<any>(null);
 
-  const handlePaymentConfirm = () => {
+  const handlePaymentConfirm = (totalPrice: number) => {
+    console.log('handlePaymentConfirm called with totalPrice:', totalPrice);
+    console.log('selectedRecentTrip:', selectedRecentTrip);
+    if (selectedRecentTrip) {
+      const bookingData = {
+        ...selectedRecentTrip,
+        departureTime: time,
+        arrivalTime: '12:30',
+        date: date,
+        trainNumber: '101',
+        totalPrice: totalPrice,
+      };
+      console.log('Setting currentBookingData:', bookingData);
+      setCurrentBookingData(bookingData);
+    }
     setIsPaymentModalOpen(false);
     setIsPaymentSuccessModalOpen(true);
+  };
+
+  const handleSaveBookingHistory = async (bookingData: any): Promise<string | null> => {
+    console.log('handleSaveBookingHistory called with:', bookingData);
+    try {
+      const result = await saveBookingHistory(bookingData);
+      console.log('saveBookingHistory result:', result);
+      await loadBookingHistory();
+      console.log('Booking history reloaded');
+      return result?.id || null;
+    } catch (error) {
+      console.error('Error in handleSaveBookingHistory:', error);
+      return null;
+    }
   };
 
   const handlePaymentSuccessClose = () => {
@@ -131,7 +174,8 @@ function App() {
     alert('승차권 페이지로 이동합니다.');
   };
 
-  const handleSaveQuickPurchase = async (data: QuickPurchaseData) => {
+  const handleSaveQuickPurchase = async (data: QuickPurchaseData, departure?: string, arrival?: string) => {
+    console.log('handleSaveQuickPurchase called with:', { data, departure, arrival, editingBooking, selectedTrip });
     const seatClassText = data.seatClass === 'general' ? '일반실' : '특실';
     const seatDirectionText = data.direction === 'forward' ? '순방향' : '역방향';
 
@@ -168,7 +212,25 @@ function App() {
         seat_numbers: data.seatNumbers,
       });
       setEditingBooking(null);
+    } else if (departure && arrival) {
+      console.log('Adding quick booking with departure/arrival:', departure, arrival);
+      const result = await addQuickBooking({
+        label: data.nickname,
+        departure: departure,
+        arrival: arrival,
+        adults: data.adults,
+        children: data.children,
+        infants: data.infants,
+        departure_time: `${formattedDate} ${formattedTime}`,
+        seat_class: seatClassText,
+        seat_direction: seatDirectionText,
+        car_number: data.carNumber,
+        seat_numbers: data.seatNumbers,
+        is_quick_purchase: true,
+      });
+      console.log('Added quick booking result:', result);
     } else if (selectedTrip) {
+      console.log('Adding quick booking with selectedTrip:', selectedTrip);
       await addQuickBooking({
         label: data.nickname,
         departure: selectedTrip.departure,
@@ -181,17 +243,25 @@ function App() {
         seat_direction: seatDirectionText,
         car_number: data.carNumber,
         seat_numbers: data.seatNumbers,
+        is_quick_purchase: true,
       });
       setSelectedTrip(null);
     }
 
     await loadQuickBookings();
+    await loadBookingHistory();
+    await loadQuickPurchases();
     setIsRegistrationModalOpen(false);
   };
 
   const handleDeleteBookings = async (ids: string[]) => {
-    await deleteQuickBookings(ids);
+    console.log('handleDeleteBookings called with ids:', ids);
+    const result = await deleteQuickBookings(ids);
+    console.log('Delete result:', result);
     await loadQuickBookings();
+    await loadBookingHistory();
+    await loadQuickPurchases();
+    console.log('All data reloaded');
   };
 
   const handleEditBooking = (booking: QuickBooking) => {
@@ -305,7 +375,7 @@ function App() {
                   <Clock className="w-[18px] h-[18px] text-gray-600" />
                   <div className="flex-1 text-left">
                     <div className="text-sm text-gray-900">
-                      {date} {time}
+                      {date === '일정을 선택해주세요.' ? date : `${date} ${time}`}
                     </div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-gray-300" />
@@ -319,9 +389,10 @@ function App() {
                   <Users className="w-[18px] h-[18px] text-gray-600" />
                   <div className="flex-1 text-left">
                     <div className="text-sm text-gray-900">
-                      성인 {passengers.adults}명
-                      {passengers.children > 0 && `, 어린이 ${passengers.children}명`}
-                      {passengers.infants > 0 && `, 유아 ${passengers.infants}명`}
+                      {passengers.adults === 1 && passengers.children === 0 && passengers.infants === 0 && date === '일정을 선택해주세요.'
+                        ? '인원을 선택해주세요.'
+                        : `성인 ${passengers.adults}명${passengers.children > 0 ? `, 어린이 ${passengers.children}명` : ''}${passengers.infants > 0 ? `, 유아 ${passengers.infants}명` : ''}`
+                      }
                     </div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-gray-300" />
@@ -385,7 +456,7 @@ function App() {
             </div>
             <button
               onClick={() => setIsRecentTripsModalOpen(true)}
-              className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-all hover:scale-105 active:scale-95"
             >
               더보기
             </button>
@@ -393,36 +464,78 @@ function App() {
 
           {/* Recent Trip Cards - 2 Column Grid */}
           <div className="grid grid-cols-2 gap-3">
-            {quickBookings.slice(0, 4).map((booking) => {
+            {[...quickPurchases, ...bookingHistory.filter(b => !b.is_quick_purchase)].slice(0, 4).map((booking) => {
               return (
                 <div
                   key={booking.id}
-                  className={`bg-white rounded-xl p-3.5 shadow-sm border-2 cursor-pointer active:scale-[0.97] transition-all hover:shadow-md ${
-                    selectedRecentTrip?.id === booking.id ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-orange-200' : 'border-gray-100 hover:border-gray-200'
-                  }`}
-                  onClick={() => handleRecentTripClick(booking)}
-                  onMouseDown={() => handleTripLongPressStart(booking.departure, booking.arrival)}
-                  onMouseUp={handleTripLongPressEnd}
-                  onMouseLeave={handleTripLongPressEnd}
-                  onTouchStart={() => handleTripLongPressStart(booking.departure, booking.arrival)}
-                  onTouchEnd={handleTripLongPressEnd}
-                  onTouchCancel={handleTripLongPressEnd}
+                  onClick={() => {
+                    if (booking.is_quick_purchase) {
+                      handleRecentTripClick(booking);
+                    }
+                  }}
+                  onTouchStart={() => {
+                    if (booking.is_quick_purchase) {
+                      handleTripLongPressStart(booking.departure, booking.arrival);
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    if (booking.is_quick_purchase) {
+                      handleTripLongPressEnd();
+                    }
+                  }}
+                  className={`bg-white rounded-xl p-3.5 shadow-sm border-2 transition-all ${
+                    selectedRecentTrip?.id === booking.id
+                      ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-orange-200'
+                      : 'border-gray-100'
+                  } ${booking.is_quick_purchase ? 'cursor-pointer active:scale-[0.98]' : ''}`}
                 >
-                  <div className="inline-block px-3 py-1 border-2 border-blue-600 text-blue-600 text-xs font-bold rounded-lg mb-3">
-                    {booking.label}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className={`inline-block px-3 py-1 border-2 text-xs font-bold rounded-lg ${
+                      selectedRecentTrip?.id === booking.id
+                        ? 'border-orange-500 text-orange-600'
+                        : 'border-blue-600 text-blue-600'
+                    }`}>
+                      {booking.label}
+                    </div>
+                    {booking.is_quick_purchase && (
+                      <div className="inline-block px-2.5 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
+                        간편구매
+                      </div>
+                    )}
                   </div>
 
-                  <div className="text-lg font-bold text-gray-900 mb-3">
+                  <div className="text-xl font-bold text-gray-900 mb-2">
                     {booking.departure} → {booking.arrival}
                   </div>
 
-                  <div className="flex gap-1.5">
-                    <div className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded">
-                      간편구매
-                    </div>
-                    <div className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded">
-                      화 10시 이후
-                    </div>
+                  <div className="text-sm text-gray-700">
+                    {booking.departure_time ? (() => {
+                      if (booking.is_quick_purchase) {
+                        // 간편구매: "2025.11.18(화) 11시 이후" -> "화요일 11시 이후" 변환
+                        const match = booking.departure_time.match(/\((.)\)\s+(\d+)시/);
+                        if (match) {
+                          const [, weekday, hour] = match;
+                          const weekdayMap: { [key: string]: string } = {
+                            '월': '월요일',
+                            '화': '화요일',
+                            '수': '수요일',
+                            '목': '목요일',
+                            '금': '금요일',
+                            '토': '토요일',
+                            '일': '일요일'
+                          };
+                          return `${weekdayMap[weekday] || weekday} ${hour}시 이후`;
+                        }
+                      } else {
+                        // 일반 여정: "2025년 11월 18일 (화) 07:20:00" -> "2025.11.18(화)" 변환
+                        const dateMatch = booking.departure_time.match(/(\d{4})년\s+(\d+)월\s+(\d+)일\s+\((.)\)/);
+                        if (dateMatch) {
+                          const [, year, month, day, weekday] = dateMatch;
+                          return `${year}.${month.padStart(2, '0')}.${day.padStart(2, '0')}(${weekday})`;
+                        }
+                      }
+                      return booking.departure_time;
+                    })() : ''}
                   </div>
                 </div>
               );
@@ -469,13 +582,27 @@ function App() {
       <RecentTripsModal
         isOpen={isRecentTripsModalOpen}
         onClose={() => setIsRecentTripsModalOpen(false)}
-        bookings={quickBookings}
+        bookings={bookingHistory}
         onDelete={handleDeleteBookings}
         onEdit={handleEditBooking}
         onTripClick={handleRecentTripClick}
         onTripLongPressStart={handleTripLongPressStart}
         onTripLongPressEnd={handleTripLongPressEnd}
         selectedTripId={selectedRecentTrip?.id}
+        onToggleQuickPurchase={async (id: string, isQuickPurchase: boolean) => {
+          await toggleQuickPurchase(id, isQuickPurchase);
+          await loadQuickBookings();
+          await loadBookingHistory();
+          await loadQuickPurchases();
+        }}
+        onQuickPurchaseSave={async (data, departure, arrival) => {
+          await handleSaveQuickPurchase(data, departure, arrival);
+          await loadQuickPurchases();
+          await loadQuickBookings();
+          await loadBookingHistory();
+          setIsRecentTripsModalOpen(false);
+          setIsQuickPurchaseSuccessOpen(true);
+        }}
       />
 
       {/* Payment Modal */}
@@ -503,55 +630,42 @@ function App() {
           onConfirm={handlePaymentConfirm}
           onSearchOtherTrains={() => {
             setIsPaymentModalOpen(false);
-            setSelectedRecentTrip(null);
+            setShowTrainSearch(true);
           }}
         />
       )}
 
       {/* Payment Success Modal */}
-      {isPaymentSuccessModalOpen && selectedRecentTrip && (
+      {isPaymentSuccessModalOpen && currentBookingData && (
         <PaymentSuccessModal
-          isFromQuickPurchase={true}
+          isFromQuickPurchase={currentBookingData.is_quick_purchase || false}
           onClose={handlePaymentSuccessClose}
-          onSaveAsQuickBooking={async (baseLabel: string) => {
-            const existingBookings = await getQuickBookings();
-            const nextNumber = existingBookings.length + 1;
-            const label = `${baseLabel} ${nextNumber}`;
-
-            const result = await addQuickBooking({
-              label,
-              departure: selectedRecentTrip.departure,
-              arrival: selectedRecentTrip.arrival,
-              train_type: selectedRecentTrip.train_type,
-              adults: selectedRecentTrip.adults,
-              children: selectedRecentTrip.children,
-              infants: selectedRecentTrip.infants,
-              departure_time: `${date} ${time}`,
-              seat_class: selectedRecentTrip.seat_class,
-              seat_direction: selectedRecentTrip.seat_direction,
-            });
-
+          onSaveBookingHistory={handleSaveBookingHistory}
+          onToggleQuickPurchase={async (id: string, isQuickPurchase: boolean) => {
+            await toggleQuickPurchase(id, isQuickPurchase);
             await loadQuickBookings();
-            return result?.id || null;
-          }}
-          onDeleteQuickBooking={async (id: string) => {
-            await deleteQuickBooking(id);
-            await loadQuickBookings();
+            await loadBookingHistory();
+            await loadQuickPurchases();
           }}
           onOpenQuickPurchase={handleOpenQuickPurchaseFromSuccess}
           bookingData={{
-            departure: selectedRecentTrip.departure,
-            arrival: selectedRecentTrip.arrival,
-            departureTime: time,
-            arrivalTime: '12:30',
-            date: date,
+            departure: currentBookingData.departure,
+            arrival: currentBookingData.arrival,
+            departureTime: currentBookingData.departureTime,
+            arrivalTime: currentBookingData.arrivalTime,
+            date: currentBookingData.date,
             passengers: {
-              adults: selectedRecentTrip.adults,
-              children: selectedRecentTrip.children,
-              infants: selectedRecentTrip.infants,
+              adults: currentBookingData.adults,
+              children: currentBookingData.children,
+              infants: currentBookingData.infants,
             },
-            trainType: selectedRecentTrip.train_type,
-            trainNumber: '101',
+            trainType: currentBookingData.train_type,
+            trainNumber: currentBookingData.trainNumber,
+            carNumber: currentBookingData.car_number,
+            seatNumbers: currentBookingData.seat_numbers ? currentBookingData.seat_numbers.split(', ').map(Number) : undefined,
+            seatClass: currentBookingData.seat_class,
+            seatDirection: currentBookingData.seat_direction,
+            totalPrice: currentBookingData.totalPrice,
           }}
         />
       )}
@@ -563,12 +677,20 @@ function App() {
         onSelect={(station) => {
           if (stationPickerMode === 'departure') {
             setDeparture(station);
+            setIsStationPickerOpen(false);
+            // 출발역 선택 후 자동으로 도착역 선택 모달 열기
+            setTimeout(() => {
+              setStationPickerMode('arrival');
+              setIsStationPickerOpen(true);
+            }, 100);
           } else {
             setArrival(station);
+            setIsStationPickerOpen(false);
           }
         }}
         title={stationPickerMode === 'departure' ? '출발역 선택' : '도착역 선택'}
         currentStation={stationPickerMode === 'departure' ? departure : arrival}
+        excludeStation={stationPickerMode === 'departure' ? (arrival !== '선택' ? arrival : undefined) : (departure !== '선택' ? departure : undefined)}
       />
 
       {/* Train Search Results */}
@@ -601,9 +723,17 @@ function App() {
               await loadQuickBookings();
             }}
             onOpenQuickPurchase={handleOpenQuickPurchaseFromSuccess}
+            onSaveBookingHistory={handleSaveBookingHistory}
+            onToggleQuickPurchase={async (id: string, isQuickPurchase: boolean) => {
+              await toggleQuickPurchase(id, isQuickPurchase);
+              await loadQuickBookings();
+              await loadBookingHistory();
+              await loadQuickPurchases();
+            }}
             initialDeparture={departure}
             initialArrival={arrival}
             initialDate={date}
+            initialTime={time !== '선택' ? time : undefined}
             initialPassengerCount={passengers.adults + passengers.children + passengers.infants}
           />
         </div>

@@ -110,6 +110,7 @@ export default function QuickPurchaseRegistrationModal({
       carNumber: carNumber ? parseInt(carNumber) : undefined,
       seatNumbers: seatNumbers || undefined,
     });
+    onClose();
   };
 
   const getNextWeekday = (targetWeekday: number) => {

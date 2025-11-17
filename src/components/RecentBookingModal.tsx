@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { X, ArrowRight, User, Ticket } from 'lucide-react';
+import { X, ArrowRight, User, Ticket, Star } from 'lucide-react';
 import { QuickBooking } from '../lib/supabase';
-import QuickPurchaseModal from './QuickPurchaseModal';
 
 interface RecentBookingModalProps {
   booking: QuickBooking;
   onClose: () => void;
-  onQuickPurchaseSaved?: (bookingId: string, openModal?: boolean) => void;
+  onQuickPurchaseSaved?: (bookingId: string, label: string) => void;
 }
 
 export default function RecentBookingModal({ booking, onClose, onQuickPurchaseSaved }: RecentBookingModalProps) {
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [showLabelInput, setShowLabelInput] = useState(false);
+  const [label, setLabel] = useState('');
   const formatPassengers = (adults: number, children: number, infants: number) => {
     const parts = [];
     if (adults > 0) parts.push(`성인 ${adults}명`);
@@ -74,38 +74,67 @@ export default function RecentBookingModal({ booking, onClose, onQuickPurchaseSa
           </div>
 
           <div className="mt-4 text-center text-sm text-gray-600">
-            저주 이용하는 구간이라면 '간편구매'로 저장해두세요.
+            자주 이용하는 구간이라면 '간편구매'로 저장해두세요.
           </div>
 
-          <div className="mt-6 space-y-3">
-            <button
-              onClick={() => setShowPurchaseModal(true)}
-              className="w-full py-4 bg-indigo-700 text-white text-lg font-bold rounded-xl hover:bg-indigo-800 transition-colors"
-            >
-              간편구매 등록 &gt;
-            </button>
+          {!showLabelInput ? (
+            <div className="mt-6 space-y-3">
+              <button
+                onClick={() => setShowLabelInput(true)}
+                className="w-full py-4 bg-blue-600 text-white text-lg font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Star className="w-5 h-5" />
+                간편구매 등록
+              </button>
 
-            <button className="w-full py-4 bg-white border-2 border-gray-300 text-gray-700 text-lg font-bold rounded-xl hover:bg-gray-50 transition-colors">
-              일반 조회 &gt;
-            </button>
-          </div>
+              <button
+                onClick={onClose}
+                className="w-full py-4 bg-white border-2 border-gray-300 text-gray-700 text-lg font-bold rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          ) : (
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  간편구매 이름
+                </label>
+                <input
+                  type="text"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder="예) 집 → 회사"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-600 focus:outline-none text-base"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowLabelInput(false);
+                    setLabel('');
+                  }}
+                  className="flex-1 py-4 bg-gray-400 text-white text-lg font-bold rounded-xl hover:bg-gray-500 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    if (label.trim()) {
+                      onQuickPurchaseSaved?.(booking.id, label.trim());
+                      onClose();
+                    }
+                  }}
+                  disabled={!label.trim()}
+                  className="flex-1 py-4 bg-blue-600 text-white text-lg font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  저장
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-
-        {showPurchaseModal && (
-          <QuickPurchaseModal
-            departure={booking.departure}
-            arrival={booking.arrival}
-            onClose={() => {
-              setShowPurchaseModal(false);
-              onClose();
-            }}
-            onSaved={(bookingId, openModal) => {
-              setShowPurchaseModal(false);
-              onClose();
-              onQuickPurchaseSaved?.(bookingId, openModal);
-            }}
-          />
-        )}
       </div>
     </div>
   );

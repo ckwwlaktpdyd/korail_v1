@@ -1,6 +1,7 @@
-import { ChevronLeft, MoreVertical, ArrowRight } from 'lucide-react';
+import { ChevronLeft, MoreVertical, ArrowRight, Star } from 'lucide-react';
 import { useState } from 'react';
 import { QuickBooking } from '../lib/supabase';
+import QuickPurchaseRegistrationModal, { QuickPurchaseData } from './QuickPurchaseRegistrationModal';
 
 interface RecentTripsModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface RecentTripsModalProps {
   onTripLongPressStart: (departure: string, arrival: string) => void;
   onTripLongPressEnd: () => void;
   selectedTripId?: string | null;
+  onQuickPurchaseSave?: (data: QuickPurchaseData, departure: string, arrival: string) => Promise<void>;
 }
 
 export default function RecentTripsModal({
@@ -24,11 +26,14 @@ export default function RecentTripsModal({
   onTripLongPressStart,
   onTripLongPressEnd,
   selectedTripId,
+  onQuickPurchaseSave,
 }: RecentTripsModalProps) {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showQuickPurchaseRegistration, setShowQuickPurchaseRegistration] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<QuickBooking | null>(null);
 
   if (!isOpen) return null;
 
@@ -127,14 +132,24 @@ export default function RecentTripsModal({
               return (
                 <div
                   key={booking.id}
-                  className={`bg-white rounded-xl p-4 shadow-sm border-2 relative transition-all hover:shadow-md ${
+                  onClick={() => {
+                    if (!isEditMode && booking.is_quick_purchase) {
+                      onTripClick(booking);
+                    }
+                  }}
+                  onTouchStart={() => {
+                    if (!isEditMode && booking.is_quick_purchase) {
+                      onTripLongPressStart(booking.departure, booking.arrival);
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    if (!isEditMode && booking.is_quick_purchase) {
+                      onTripLongPressEnd();
+                    }
+                  }}
+                  className={`bg-white rounded-xl p-4 shadow-sm border-2 relative transition-all ${
                     selectedTripId === booking.id ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-orange-200' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onMouseDown={() => !isEditMode && onTripLongPressStart(booking.departure, booking.arrival)}
-                  onMouseUp={onTripLongPressEnd}
-                  onMouseLeave={onTripLongPressEnd}
-                  onTouchStart={() => !isEditMode && onTripLongPressStart(booking.departure, booking.arrival)}
-                  onTouchEnd={onTripLongPressEnd}
+                  } ${!isEditMode && booking.is_quick_purchase ? 'cursor-pointer active:scale-[0.98]' : ''}`}
                 >
                   <div className="flex items-start gap-3">
                     {isEditMode && (
@@ -153,6 +168,11 @@ export default function RecentTripsModal({
                         }`}>
                           {booking.label}
                         </span>
+                        {booking.is_quick_purchase && (
+                          <span className="px-2.5 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
+                            간편구매
+                          </span>
+                        )}
                         <span className="text-xs text-gray-500 font-medium">{booking.train_type}</span>
                       </div>
 
@@ -203,24 +223,41 @@ export default function RecentTripsModal({
                               className="fixed inset-0 z-40"
                               onClick={() => setMenuOpenId(null)}
                             />
-                            <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-32 z-50">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                              >
-                                고정
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEdit(booking);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                              >
-                                수정
-                              </button>
+                            <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-40 z-50">
+                              {booking.is_quick_purchase && (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                  >
+                                    고정
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(booking);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                  >
+                                    수정
+                                  </button>
+                                </>
+                              )}
+                              {!booking.is_quick_purchase && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMenuOpenId(null);
+                                    setSelectedBooking(booking);
+                                    setShowQuickPurchaseRegistration(true);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2 font-medium"
+                                >
+                                  추가
+                                </button>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -282,6 +319,25 @@ export default function RecentTripsModal({
             </div>
           </div>
         </>
+      )}
+
+      {showQuickPurchaseRegistration && selectedBooking && (
+        <QuickPurchaseRegistrationModal
+          isOpen={showQuickPurchaseRegistration}
+          departure={selectedBooking.departure}
+          arrival={selectedBooking.arrival}
+          onClose={() => {
+            setShowQuickPurchaseRegistration(false);
+            setSelectedBooking(null);
+          }}
+          onSave={async (data) => {
+            setShowQuickPurchaseRegistration(false);
+            setSelectedBooking(null);
+            if (onQuickPurchaseSave) {
+              await onQuickPurchaseSave(data, selectedBooking.departure, selectedBooking.arrival);
+            }
+          }}
+        />
       )}
     </>
   );

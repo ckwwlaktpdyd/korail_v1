@@ -1,16 +1,18 @@
 import { X, Check, Star } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface PaymentSuccessModalProps {
   onClose: () => void;
   onSaveAsQuickBooking?: (label: string) => Promise<string | null>;
   onDeleteQuickBooking?: (id: string) => Promise<void>;
+  onToggleQuickPurchase?: (id: string, isQuickPurchase: boolean) => Promise<void>;
   onOpenQuickPurchase?: (bookingData: {
     departure: string;
     arrival: string;
     trainType: string;
     passengers: { adults: number; children: number; infants: number };
   }) => void;
+  onSaveBookingHistory?: (bookingData: any) => Promise<string | null>;
   isFromQuickPurchase?: boolean;
   bookingData?: {
     departure: string;
@@ -23,28 +25,74 @@ interface PaymentSuccessModalProps {
     trainNumber: string;
     carNumber?: number;
     seatNumbers?: number[];
+    seatClass?: string;
+    seatDirection?: string;
+    totalPrice?: number;
   };
 }
 
-export default function PaymentSuccessModal({ onClose, onSaveAsQuickBooking, onDeleteQuickBooking, onOpenQuickPurchase, isFromQuickPurchase = false, bookingData }: PaymentSuccessModalProps) {
+export default function PaymentSuccessModal({ onClose, onSaveAsQuickBooking, onDeleteQuickBooking, onToggleQuickPurchase, onOpenQuickPurchase, onSaveBookingHistory, isFromQuickPurchase = false, bookingData }: PaymentSuccessModalProps) {
   const [isSaved, setIsSaved] = useState(false);
   const [savedBookingId, setSavedBookingId] = useState<string | null>(null);
+  const hasBeenSavedRef = useRef(false);
+
+  useEffect(() => {
+    if (onSaveBookingHistory && bookingData && !isFromQuickPurchase && !hasBeenSavedRef.current) {
+      console.log('📝 Saving booking history - hasBeenSavedRef:', hasBeenSavedRef.current);
+      console.log('📝 bookingData:', bookingData);
+      hasBeenSavedRef.current = true;
+      onSaveBookingHistory(bookingData).then((id) => {
+        console.log('✅ Received booking ID:', id);
+        if (id) {
+          setSavedBookingId(id);
+          console.log('✅ savedBookingId set to:', id);
+        } else {
+          console.error('❌ Booking ID is null!');
+        }
+      }).catch((error) => {
+        console.error('❌ Error saving booking history:', error);
+      });
+      console.log('After save - hasBeenSavedRef:', hasBeenSavedRef.current);
+    } else {
+      console.log('❌ Not saving because:', {
+        onSaveBookingHistory: !!onSaveBookingHistory,
+        bookingData: !!bookingData,
+        isFromQuickPurchase,
+        hasBeenSavedRef: hasBeenSavedRef.current
+      });
+    }
+  }, []);
 
   const handleStarToggle = async () => {
-    if (isSaved && savedBookingId && onDeleteQuickBooking) {
-      console.log('Deleting quick booking...');
-      await onDeleteQuickBooking(savedBookingId);
-      console.log('Quick booking deleted!');
-      setIsSaved(false);
-      setSavedBookingId(null);
-    } else if (!isSaved && onSaveAsQuickBooking) {
-      console.log('Saving quick booking...');
-      const bookingId = await onSaveAsQuickBooking('여정');
-      console.log('Quick booking saved!', bookingId);
-      if (bookingId) {
-        setIsSaved(true);
-        setSavedBookingId(bookingId);
+    try {
+      console.log('=== handleStarToggle START ===');
+      console.log('savedBookingId:', savedBookingId);
+      console.log('onToggleQuickPurchase exists:', !!onToggleQuickPurchase);
+      console.log('current isSaved:', isSaved);
+
+      if (!savedBookingId) {
+        console.error('❌ No booking ID available yet');
+        alert('예약 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+        return;
       }
+
+      if (!onToggleQuickPurchase) {
+        console.error('❌ onToggleQuickPurchase is not provided');
+        alert('간편구매 기능을 사용할 수 없습니다.');
+        return;
+      }
+
+      const newState = !isSaved;
+      console.log('🔄 Toggling quick purchase to:', newState);
+
+      await onToggleQuickPurchase(savedBookingId, newState);
+
+      setIsSaved(newState);
+      console.log('✅ Toggle complete - new state:', newState);
+      console.log('=== handleStarToggle END ===');
+    } catch (error) {
+      console.error('❌ Error in handleStarToggle:', error);
+      alert('간편구매 등록 중 오류가 발생했습니다.');
     }
   };
   const getPassengerText = () => {
@@ -54,6 +102,13 @@ export default function PaymentSuccessModal({ onClose, onSaveAsQuickBooking, onD
     if (bookingData.passengers.children > 0) parts.push(`어린이 ${bookingData.passengers.children}명`);
     if (bookingData.passengers.infants > 0) parts.push(`유아 ${bookingData.passengers.infants}명`);
     return parts.join(', ');
+  };
+
+  const getTotalPrice = () => {
+    if (bookingData?.totalPrice) {
+      return bookingData.totalPrice.toLocaleString();
+    }
+    return '59,800';
   };
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center sm:justify-center">

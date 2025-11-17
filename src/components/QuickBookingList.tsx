@@ -199,9 +199,13 @@ export default function QuickBookingList({ onSelectBooking, onQuickPurchaseSaved
       {showListModal && (
         <RecentBookingsListModal
           bookings={bookings}
-          onClose={() => setShowListModal(false)}
+          onClose={() => {
+            setShowListModal(false);
+            loadBookings();
+          }}
           onQuickPurchaseSaved={(bookingId, openModal) => {
             setShowListModal(false);
+            loadBookings();
             onQuickPurchaseSaved?.(bookingId, openModal);
           }}
         />

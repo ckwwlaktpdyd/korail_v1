@@ -27,9 +27,12 @@ interface TrainSearchResultsProps {
   onSaveAsQuickBooking?: (bookingData: any) => Promise<string | null>;
   onDeleteQuickBooking?: (id: string) => Promise<void>;
   onOpenQuickPurchase?: (bookingData: any) => void;
+  onSaveBookingHistory?: (bookingData: any) => Promise<void>;
+  onToggleQuickPurchase?: (id: string, isQuickPurchase: boolean) => Promise<void>;
   initialDeparture?: string;
   initialArrival?: string;
   initialDate?: string;
+  initialTime?: string;
   initialPassengerCount?: number;
 }
 
@@ -40,9 +43,12 @@ export function TrainSearchResults({
   onSaveAsQuickBooking,
   onDeleteQuickBooking,
   onOpenQuickPurchase,
+  onSaveBookingHistory,
+  onToggleQuickPurchase,
   initialDeparture = '청량리',
   initialArrival = '대전',
   initialDate = '2025.11.11(화)',
+  initialTime,
   initialPassengerCount = 1
 }: TrainSearchResultsProps) {
   const parseDateString = (dateStr: string) => {
@@ -59,6 +65,7 @@ export function TrainSearchResults({
   const [departureStation, setDepartureStation] = useState(initialDeparture);
   const [arrivalStation, setArrivalStation] = useState(initialArrival);
   const [selectedDate, setSelectedDate] = useState(parseDateString(initialDate));
+  const [minimumTime, setMinimumTime] = useState(initialTime);
   const [trains, setTrains] = useState<TrainSchedule[]>([]);
   const [filteredTrains, setFilteredTrains] = useState<TrainSchedule[]>([]);
   const [seatFilter, setSeatFilter] = useState<'all' | 'regular'>('all');
@@ -168,6 +175,8 @@ export function TrainSearchResults({
         onSaveAsQuickBooking={onSaveAsQuickBooking}
         onDeleteQuickBooking={onDeleteQuickBooking}
         onOpenQuickPurchase={onOpenQuickPurchase}
+        onSaveBookingHistory={onSaveBookingHistory}
+        onToggleQuickPurchase={onToggleQuickPurchase}
         trainInfo={{
           trainType: selectedTrain.train_type,
           trainNumber: selectedTrain.train_number,
@@ -184,9 +193,9 @@ export function TrainSearchResults({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col max-w-[430px] mx-auto">
+    <div className="h-screen bg-gray-50 flex flex-col max-w-[430px] mx-auto">
       {/* 헤더 */}
-      <header className="bg-white px-4 py-3 flex items-center justify-between shadow-sm">
+      <header className="bg-white px-4 py-3 flex items-center justify-between shadow-sm shrink-0">
         <button onClick={onBack} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
           <ArrowLeft className="w-6 h-6 text-gray-700" />
         </button>
@@ -197,7 +206,7 @@ export function TrainSearchResults({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pb-20">
+      <main className="flex-1 overflow-y-auto pb-20 min-h-0">
         {/* 출발/도착 정보 카드 */}
         <section className="mx-4 mt-4">
           <div className="bg-white rounded-2xl shadow-sm p-5">
@@ -295,65 +304,78 @@ export function TrainSearchResults({
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredTrains.map((train) => (
-                <div
-                  key={train.id}
-                  className="bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow border border-gray-100"
-                >
-                  <div className="flex items-center justify-between">
-                    {/* 열차 정보 */}
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="flex flex-col items-start">
-                        <span className="px-2.5 py-1 bg-blue-600 text-white text-xs font-bold rounded-md mb-1.5">
-                          {train.train_type}
-                        </span>
-                        <span className="text-xs text-gray-500">{train.train_number}</span>
-                      </div>
+              {filteredTrains.map((train) => {
+                const isBeforeMinimumTime = minimumTime && train.departure_time < minimumTime;
+                const isAvailable = train.has_regular_seats && !isBeforeMinimumTime;
 
-                      {/* 시간 정보 */}
-                      <div className="flex items-center gap-3">
-                        <div className="text-center">
-                          <div className="text-base font-bold text-gray-900">
-                            {train.departure_time.substring(0, 5)}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-0.5">{train.departure_station}</div>
+                return (
+                  <div
+                    key={train.id}
+                    className={`bg-white rounded-xl shadow-sm p-4 transition-shadow border border-gray-100 ${
+                      isBeforeMinimumTime ? 'opacity-50' : 'hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      {/* 열차 정보 */}
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="flex flex-col items-start">
+                          <span className={`px-2.5 py-1 text-xs font-bold rounded-md mb-1.5 ${
+                            isBeforeMinimumTime ? 'bg-gray-400 text-white' : 'bg-blue-600 text-white'
+                          }`}>
+                            {train.train_type}
+                          </span>
+                          <span className="text-xs text-gray-500">{train.train_number}</span>
                         </div>
 
-                        <ArrowRight className="w-4 h-4 text-gray-400" />
-
-                        <div className="text-center">
-                          <div className="text-base font-bold text-gray-900">
-                            {train.arrival_time.substring(0, 5)}
+                        {/* 시간 정보 */}
+                        <div className="flex items-center gap-3">
+                          <div className="text-center">
+                            <div className={`text-base font-bold ${
+                              isBeforeMinimumTime ? 'text-gray-400' : 'text-gray-900'
+                            }`}>
+                              {train.departure_time.substring(0, 5)}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">{train.departure_station}</div>
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">{train.arrival_station}</div>
+
+                          <ArrowRight className="w-4 h-4 text-gray-400" />
+
+                          <div className="text-center">
+                            <div className={`text-base font-bold ${
+                              isBeforeMinimumTime ? 'text-gray-400' : 'text-gray-900'
+                            }`}>
+                              {train.arrival_time.substring(0, 5)}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">{train.arrival_station}</div>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* 가격 버튼 */}
-                    <div className="ml-3">
-                      {train.has_regular_seats ? (
-                        <button
-                          onClick={() => handleTrainSelect(train)}
-                          className="px-4 py-2.5 text-base font-bold text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 active:scale-95 transition-all whitespace-nowrap"
-                        >
-                          {formatPrice(train.regular_price)}
-                        </button>
-                      ) : (
-                        <span className="text-gray-400 text-sm">매진</span>
-                      )}
+                      {/* 가격 버튼 */}
+                      <div className="ml-3">
+                        {isAvailable ? (
+                          <button
+                            onClick={() => handleTrainSelect(train)}
+                            className="px-4 py-2.5 text-base font-bold text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 active:scale-95 transition-all whitespace-nowrap"
+                          >
+                            {formatPrice(train.regular_price)}
+                          </button>
+                        ) : (
+                          <span className="text-gray-400 text-sm">매진</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
       </main>
 
       {/* 하단 네비게이션 */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2.5 z-50">
-        <div className="flex items-center justify-around max-w-md mx-auto">
+      <nav className="bg-white border-t border-gray-200 px-4 py-2.5 shrink-0">
+        <div className="flex items-center justify-around">
           <button onClick={onBack} className="flex flex-col items-center gap-0.5 text-blue-600">
             <Home className="w-5 h-5" />
             <span className="text-[10px] font-medium">홈</span>
@@ -380,6 +402,7 @@ export function TrainSearchResults({
         onClose={() => setShowStationPicker(false)}
         title={stationPickerMode === 'departure' ? '출발역 선택' : '도착역 선택'}
         currentStation={stationPickerMode === 'departure' ? departureStation : arrivalStation}
+        excludeStation={stationPickerMode === 'departure' ? arrivalStation : departureStation}
       />
     </div>
   );

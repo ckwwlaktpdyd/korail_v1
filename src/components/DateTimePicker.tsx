@@ -12,7 +12,7 @@ export default function DateTimePicker({ selectedDate, selectedTime, onDateChang
   const [currentMonth, setCurrentMonth] = useState(new Date(2025, 10)); // November 2025
 
   const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
-  const timeSlots = ['8시', '09시', '10시', '11시', '12시', '13시', '14시', '15시', '16시', '17시', '18시', '19시'];
+  const timeSlots = ['05시', '06시', '07시', '08시', '09시', '10시', '11시', '12시', '13시', '14시', '15시', '16시', '17시', '18시', '19시', '20시', '21시', '22시', '23시'];
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -93,9 +93,21 @@ export default function DateTimePicker({ selectedDate, selectedTime, onDateChang
       <div className="grid grid-cols-7 gap-2 mb-6">
         {days.map((day, idx) => {
           // Parse selected date to check if this day is selected
-          const selectedDay = selectedDate ? parseInt(selectedDate.split('.')[2].split('(')[0]) : null;
-          const selectedYear = selectedDate ? parseInt(selectedDate.split('.')[0]) : null;
-          const selectedMonth = selectedDate ? parseInt(selectedDate.split('.')[1]) : null;
+          let selectedDay = null;
+          let selectedYear = null;
+          let selectedMonth = null;
+
+          // Only parse if selectedDate is in the correct format
+          if (selectedDate && selectedDate.includes('.') && selectedDate.includes('(')) {
+            try {
+              const parts = selectedDate.split('.');
+              selectedDay = parseInt(parts[2].split('(')[0]);
+              selectedYear = parseInt(parts[0]);
+              selectedMonth = parseInt(parts[1]);
+            } catch (e) {
+              // If parsing fails, just ignore
+            }
+          }
 
           const isSelected = day === selectedDay &&
                            currentMonth.getFullYear() === selectedYear &&
@@ -127,7 +139,7 @@ export default function DateTimePicker({ selectedDate, selectedTime, onDateChang
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {timeSlots.map((time) => {
             // Extract hour from selectedTime (e.g., "11시 이후" -> "11시")
-            const selectedHour = selectedTime ? selectedTime.split(' ')[0] : null;
+            const selectedHour = selectedTime && selectedTime.includes(' ') ? selectedTime.split(' ')[0] : null;
             const isSelected = time === selectedHour;
 
             return (

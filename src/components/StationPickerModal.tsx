@@ -6,6 +6,7 @@ interface StationPickerModalProps {
   onSelect: (station: string) => void;
   title: string;
   currentStation: string;
+  excludeStation?: string;
 }
 
 const KTX_STATIONS = [
@@ -29,6 +30,7 @@ export default function StationPickerModal({
   onSelect,
   title,
   currentStation,
+  excludeStation,
 }: StationPickerModalProps) {
   if (!isOpen) return null;
 
@@ -59,24 +61,32 @@ export default function StationPickerModal({
 
         <div className="overflow-y-auto flex-1">
           <div className="p-4">
-            {KTX_STATIONS.map((station) => (
-              <button
-                key={station}
-                onClick={() => handleStationClick(station)}
-                className={`w-full text-left px-4 py-3.5 rounded-lg transition-colors mb-2 ${
-                  station === currentStation
-                    ? 'bg-blue-50 text-blue-600 font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-base">{station}</span>
-                  {station === currentStation && (
-                    <div className="w-2 h-2 bg-blue-600 rounded-full" />
-                  )}
-                </div>
-              </button>
-            ))}
+            {KTX_STATIONS.map((station) => {
+              const isExcluded = excludeStation && station === excludeStation;
+              const isDisabled = isExcluded;
+
+              return (
+                <button
+                  key={station}
+                  onClick={() => !isDisabled && handleStationClick(station)}
+                  disabled={isDisabled}
+                  className={`w-full text-left px-4 py-3.5 rounded-lg transition-colors mb-2 ${
+                    isDisabled
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : station === currentStation
+                      ? 'bg-blue-50 text-blue-600 font-semibold'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-base">{station}</span>
+                    {station === currentStation && !isDisabled && (
+                      <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
