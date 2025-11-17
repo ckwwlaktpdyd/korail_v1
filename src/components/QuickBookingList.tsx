@@ -19,6 +19,7 @@ export default function QuickBookingList({ onSelectBooking, onQuickPurchaseSaved
   const [showListModal, setShowListModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<QuickBooking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadBookings();
@@ -64,14 +65,22 @@ export default function QuickBookingList({ onSelectBooking, onQuickPurchaseSaved
   };
 
   const formatTimePreference = (booking: QuickBooking) => {
-    const parts = [];
-    if (booking.days_of_week && booking.days_of_week.length > 0) {
-      parts.push(booking.days_of_week.join(', '));
+    if (!booking.departure_time) return null;
+
+    // Parse departure_time format: "2025년 11월 18일 (화) 05:20:00"
+    const timeMatch = booking.departure_time.match(/\((.)\)\s*(\d+):(\d+)/);
+    if (timeMatch) {
+      const weekday = timeMatch[1];
+      const hour = parseInt(timeMatch[2], 10);
+      return `간편구매 ${weekday} ${hour}시 이후`;
     }
-    if (booking.departure_time) {
-      parts.push(`${booking.departure_time} 이후`);
-    }
-    return parts.join(' ');
+
+    return null;
+  };
+
+  const hasQuickPurchaseData = (booking: QuickBooking) => {
+    // Quick purchase data exists if there's a payment method and departure time
+    return booking.payment_method && booking.departure_time;
   };
 
   if (isLoading) {
@@ -100,30 +109,56 @@ export default function QuickBookingList({ onSelectBooking, onQuickPurchaseSaved
 
         <div className="overflow-x-auto scrollbar-hide -mx-5 px-5">
           <div className="flex gap-4 pb-2">
-            {bookings.map((booking) => (
+            {bookings.map((booking) => {
+              const isQuickPurchase = hasQuickPurchaseData(booking);
+
+              return (
               <div key={booking.id} className="relative flex-shrink-0 w-[180px]">
-                <div
-                  className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 hover:shadow-lg hover:border-gray-300 active:scale-[0.98] transition-all duration-200 cursor-pointer mb-3"
-                  onClick={() => onSelectBooking(booking)}
-                >
-                  <span className="inline-block px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded-full mb-3">
-                    {booking.train_type}
-                  </span>
+                {isQuickPurchase ? (
+                  <div
+                    className="group bg-white rounded-2xl p-4 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer mb-3"
+                    onClick={() => {
+                      setActiveBookingId(activeBookingId === booking.id ? null : booking.id);
+                      onSelectBooking(booking);
+                    }}
+                  >
+                    <div className="inline-block px-3 py-1 border-2 border-blue-600 text-blue-600 text-xs font-bold rounded-lg mb-3">
+                      {booking.label}
+                    </div>
 
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg font-bold text-gray-900">{booking.departure}</span>
-                    <ArrowRight className="w-4 h-4 text-gray-400" />
-                    <span className="text-lg font-bold text-gray-900">{booking.arrival}</span>
-                  </div>
+                    <div className="mb-3">
+                      <div className="text-lg font-bold text-gray-900">
+                        {booking.departure} → {booking.arrival}
+                      </div>
+                    </div>
 
-                  <div className="text-xs text-gray-600 mb-1">
-                    {formatTimePreference(booking)}
+                    {formatTimePreference(booking) && (
+                      <div className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded">
+                        {formatTimePreference(booking)}
+                      </div>
+                    )}
                   </div>
+                ) : (
+                  <div
+                    className="group bg-white rounded-2xl p-5 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer mb-3"
+                    onClick={() => {
+                      setActiveBookingId(activeBookingId === booking.id ? null : booking.id);
+                      onSelectBooking(booking);
+                    }}
+                  >
+                    <div className="inline-block px-3 py-1 border-2 border-blue-600 text-blue-600 text-xs font-bold rounded-lg mb-3">
+                      {booking.label}
+                    </div>
 
-                  <div className="text-xs text-gray-600">
-                    {formatPassengers(booking.adults, booking.children, booking.infants)}
+                    <div className="text-lg font-bold text-gray-900 mb-3">
+                      {booking.departure} → {booking.arrival}
+                    </div>
+
+                    <div className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded">
+                      간편구매 화 10시 이후
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <button
                   onClick={(e) => {
@@ -140,7 +175,8 @@ export default function QuickBookingList({ onSelectBooking, onQuickPurchaseSaved
                   간편 구매
                 </button>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

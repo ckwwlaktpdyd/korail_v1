@@ -43,6 +43,16 @@ export default function SavedQuickPurchases({ onSelectBooking, refreshTrigger, o
   };
 
   const formatTime = (time: string) => {
+    const timeMatch = time.match(/(\d{4})\.(\d{2})\.(\d{2})\(([^)]+)\)\s+(.+)/);
+    if (timeMatch) {
+      const [, , , , weekdayStr, timeStr] = timeMatch;
+      const weekdayMap: { [key: string]: string } = {
+        '월': '월요일', '화': '화요일', '수': '수요일', '목': '목요일',
+        '금': '금요일', '토': '토요일', '일': '일요일'
+      };
+      const fullWeekday = weekdayMap[weekdayStr] || weekdayStr;
+      return `${fullWeekday} ${timeStr}`;
+    }
     return time;
   };
 
@@ -123,28 +133,16 @@ export default function SavedQuickPurchases({ onSelectBooking, refreshTrigger, o
                 </button>
               )}
 
-              <div className="mb-3">
-                <div className="text-xs font-medium text-blue-600 mb-1">{booking.label}</div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-gray-900">{booking.departure}</span>
-                  <span className="text-gray-400">→</span>
-                  <span className="text-lg font-bold text-gray-900">{booking.arrival}</span>
-                </div>
+              <div className="inline-block px-3 py-1 border-2 border-blue-600 text-blue-600 text-xs font-bold rounded-lg mb-3">
+                {booking.label}
               </div>
 
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>{formatDays(booking.days_of_week)}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{formatTime(booking.departure_time)}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                  <Users className="w-3.5 h-3.5" />
-                  <span>{formatPassengers(booking)}</span>
-                </div>
+              <div className="text-lg font-bold text-gray-900 mb-3">
+                {booking.departure} → {booking.arrival}
+              </div>
+
+              <div className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded">
+                간편구매 화 10시 이후
               </div>
             </button>
           ))}

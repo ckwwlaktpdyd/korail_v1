@@ -1,12 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Supabase 클라이언트 생성 (환경 변수가 없으면 null 반환)
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface QuickBooking {
   id: string;
@@ -23,14 +20,13 @@ export interface QuickBooking {
   updated_at: string;
   departure_time?: string;
   days_of_week?: string[];
+  seat_class?: string;
+  seat_direction?: string;
+  car_number?: number;
+  seat_numbers?: string;
 }
 
 export async function getQuickBookings(): Promise<QuickBooking[]> {
-  if (!supabase) {
-    console.warn('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
-    return [];
-  }
-
   const { data, error } = await supabase
     .from('quick_bookings')
     .select('*')
@@ -52,12 +48,12 @@ export async function addQuickBooking(booking: {
   adults?: number;
   children?: number;
   infants?: number;
+  departure_time?: string;
+  seat_class?: string;
+  seat_direction?: string;
+  car_number?: number;
+  seat_numbers?: string;
 }): Promise<QuickBooking | null> {
-  if (!supabase) {
-    console.warn('Supabase is not configured.');
-    return null;
-  }
-
   const maxOrder = await getMaxOrderIndex();
 
   const { data, error } = await supabase
@@ -84,11 +80,6 @@ export async function addQuickBooking(booking: {
 }
 
 export async function deleteQuickBooking(id: string): Promise<boolean> {
-  if (!supabase) {
-    console.warn('Supabase is not configured.');
-    return false;
-  }
-
   const { error } = await supabase
     .from('quick_bookings')
     .delete()
@@ -102,15 +93,24 @@ export async function deleteQuickBooking(id: string): Promise<boolean> {
   return true;
 }
 
+export async function deleteQuickBookings(ids: string[]): Promise<boolean> {
+  const { error } = await supabase
+    .from('quick_bookings')
+    .delete()
+    .in('id', ids);
+
+  if (error) {
+    console.error('Error deleting quick bookings:', error);
+    return false;
+  }
+
+  return true;
+}
+
 export async function updateQuickBooking(
   id: string,
   updates: Partial<QuickBooking>
 ): Promise<QuickBooking | null> {
-  if (!supabase) {
-    console.warn('Supabase is not configured.');
-    return null;
-  }
-
   const { data, error } = await supabase
     .from('quick_bookings')
     .update({ ...updates, updated_at: new Date().toISOString() })
@@ -127,10 +127,6 @@ export async function updateQuickBooking(
 }
 
 async function getMaxOrderIndex(): Promise<number> {
-  if (!supabase) {
-    return 0;
-  }
-
   const { data, error } = await supabase
     .from('quick_bookings')
     .select('order_index')

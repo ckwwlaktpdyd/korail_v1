@@ -25,6 +25,24 @@ export default function RecentBookingsListModal({ bookings, onClose, onQuickPurc
     return parts.join(', ');
   };
 
+  const formatTimePreference = (booking: QuickBooking) => {
+    if (!booking.departure_time) return null;
+
+    // Parse departure_time format: "2025.11.19(수) 11시 이후"
+    const timeMatch = booking.departure_time.match(/\(([^)]+)\)\s*(\d+)시/);
+    if (timeMatch) {
+      const weekday = timeMatch[1];
+      const hour = timeMatch[2];
+      return `${weekday}요일 ${hour}시 이후`;
+    }
+
+    return null;
+  };
+
+  const hasQuickPurchaseData = (booking: QuickBooking) => {
+    return booking.departure_time && booking.label;
+  };
+
   const toggleExpand = (id: string) => {
     setExpandedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
@@ -133,13 +151,18 @@ export default function RecentBookingsListModal({ bookings, onClose, onQuickPurc
                       disabled={editMode}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                         <span className="text-lg font-bold text-gray-900">{booking.departure}</span>
                         <ArrowRight className="w-5 h-5 text-gray-400" />
                         <span className="text-lg font-bold text-gray-900">{booking.arrival}</span>
                         <span className="px-2.5 py-1 bg-blue-600 text-white text-xs font-bold rounded-full">
                           {booking.train_type}
                         </span>
+                        {hasQuickPurchaseData(booking) && (
+                          <span className="px-2.5 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
+                            간편구매
+                          </span>
+                        )}
                       </div>
                         {!editMode && (
                           isExpanded ? (
@@ -149,12 +172,11 @@ export default function RecentBookingsListModal({ bookings, onClose, onQuickPurc
                           )
                         )}
                       </div>
-                      <div className="text-sm text-gray-600">
-                        {formatPassengers(booking.adults, booking.children, booking.infants)}
-                      </div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        {formattedDate} {formattedTime}
-                      </div>
+                      {formatTimePreference(booking) && (
+                        <div className="text-sm text-gray-600">
+                          {formatTimePreference(booking)}
+                        </div>
+                      )}
                     </button>
                   </div>
 

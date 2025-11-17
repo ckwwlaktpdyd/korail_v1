@@ -17,9 +17,10 @@ interface QuickBookingProps {
   onUpdatePassengers: (passengers: { adults: number; children: number; infants: number }) => void;
   onUpdateDate: (date: string) => void;
   onUpdateTime: (time: string) => void;
+  showAnimation?: boolean;
 }
 
-export default function QuickBooking({ bookingData, onUpdatePassengers, onUpdateDate, onUpdateTime }: QuickBookingProps) {
+export default function QuickBooking({ bookingData, onUpdatePassengers, onUpdateDate, onUpdateTime, showAnimation = false }: QuickBookingProps) {
   const [isRoundTrip, setIsRoundTrip] = useState(false);
   const [showPassengerPicker, setShowPassengerPicker] = useState(false);
   const [showDepartureDatePicker, setShowDepartureDatePicker] = useState(false);
@@ -62,7 +63,9 @@ export default function QuickBooking({ bookingData, onUpdatePassengers, onUpdate
   };
 
   return (
-    <section className="bg-white rounded-3xl mx-5 mt-4 p-5 shadow-lg">
+    <section className={`bg-white rounded-3xl mx-5 mt-4 p-5 shadow-lg border border-transparent transition-all ${
+      showAnimation ? 'animate-rainbow-border' : ''
+    }`}>
       {/* Tab Navigation */}
       <div className="flex gap-2 mb-4">
         <button
