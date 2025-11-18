@@ -44,6 +44,74 @@ function App() {
     loadQuickPurchases();
   }, []);
 
+  // URL parameter로 초기 상태 제어 (Figma 임포트용)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const modal = params.get('modal');
+    const page = params.get('page');
+    
+    // 기본 데이터 설정
+    if (modal || page) {
+      setDeparture('서울');
+      setArrival('부산');
+      setDate('2025.11.19(수)');
+      setTime('10시 이후');
+      setPassengers({ adults: 1, children: 0, infants: 0 });
+      
+      // 간편구매/결제 모달용 더미 데이터
+      const dummyBookingData = {
+        departure: '서울',
+        arrival: '부산',
+        departureTime: '08:00',
+        arrivalTime: '10:38',
+        date: '2025.11.19(수)',
+        trainNumber: '001',
+        trainType: 'KTX',
+        train_type: 'KTX',
+        adults: 1,
+        children: 0,
+        infants: 0,
+        seat_class: '일반석',
+        seat_direction: '순방향',
+        car_number: 4,
+        seat_numbers: '3, 4',
+        totalPrice: 59800,
+      };
+      
+      // 모달 열기
+      if (modal === 'station') {
+        setIsStationPickerOpen(true);
+        setStationPickerMode('departure');
+      }
+      if (modal === 'recent') {
+        setIsRecentTripsModalOpen(true);
+      }
+      if (modal === 'payment') {
+        setCurrentBookingData(dummyBookingData);
+        setIsPaymentModalOpen(true);
+      }
+      if (modal === 'quickpurchase') {
+        setSelectedTrip({ departure: '서울', arrival: '부산' });
+        setIsRegistrationModalOpen(true);
+      }
+      if (modal === 'success') {
+        setCurrentBookingData(dummyBookingData);
+        setIsPaymentSuccessModalOpen(true);
+      }
+      if (modal === 'datetime') {
+        setShowDateTimePicker(true);
+      }
+      if (modal === 'passenger') {
+        setShowPassengerPicker(true);
+      }
+      
+      // 페이지 전환
+      if (page === 'search') {
+        setShowTrainSearch(true);
+      }
+    }
+  }, []);
+
   const loadQuickBookings = async () => {
     const bookings = await getQuickBookings();
     setQuickBookings(bookings);
