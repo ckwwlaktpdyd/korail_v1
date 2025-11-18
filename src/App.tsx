@@ -10,6 +10,7 @@ import PassengerPicker from './components/PassengerPicker';
 import PaymentModal from './components/PaymentModal';
 import PaymentSuccessModal from './components/PaymentSuccessModal';
 import { TrainSearchResults } from './components/TrainSearchResults';
+import { SeatSelection } from './components/SeatSelection';
 import { QuickBooking, getQuickBookings, getBookingHistory, getQuickPurchases, addQuickBooking, deleteQuickBookings, updateQuickBooking, saveBookingHistory, toggleQuickPurchase, supabase } from './lib/supabase';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
   const [selectedRecentTrip, setSelectedRecentTrip] = useState<QuickBooking | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [showTrainSearch, setShowTrainSearch] = useState(false);
+  const [showSeatSelection, setShowSeatSelection] = useState(false);
 
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -108,6 +110,9 @@ function App() {
       // 페이지 전환
       if (page === 'search') {
         setShowTrainSearch(true);
+      }
+      if (page === 'seat') {
+        setShowSeatSelection(true);
       }
     }
   }, []);
@@ -868,6 +873,36 @@ function App() {
             initialDate={date}
             initialTime={time !== '선택' ? time : undefined}
             initialPassengerCount={passengers.adults + passengers.children + passengers.infants}
+          />
+        </div>
+      )}
+
+      {/* Seat Selection */}
+      {showSeatSelection && (
+        <div className="fixed inset-0 z-50 bg-white">
+          <SeatSelection
+            onBack={() => setShowSeatSelection(false)}
+            onBackToHome={() => {
+              setShowSeatSelection(false);
+            }}
+            onSaveBookingHistory={handleSaveBookingHistory}
+            onToggleQuickPurchase={async (id: string, isQuickPurchase: boolean) => {
+              await toggleQuickPurchase(id, isQuickPurchase);
+              await loadQuickBookings();
+              await loadBookingHistory();
+              await loadQuickPurchases();
+            }}
+            trainInfo={{
+              trainType: 'KTX',
+              trainNumber: '001',
+              departureStation: '서울',
+              arrivalStation: '부산',
+              departureTime: '08:00',
+              arrivalTime: '10:38',
+              date: '2025년 11월 19일 (수)',
+              price: 59800,
+              passengerCount: 1,
+            }}
           />
         </div>
       )}
