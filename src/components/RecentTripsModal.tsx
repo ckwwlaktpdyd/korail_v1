@@ -147,8 +147,8 @@ export default function RecentTripsModal({
                       onTripLongPressEnd();
                     }
                   }}
-                  className={`bg-white rounded-xl p-4 shadow-sm border-2 relative transition-all ${
-                    selectedTripId === booking.id ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-orange-200' : 'border-gray-200 hover:border-gray-300'
+                  className={`rounded-xl p-4 shadow-sm border-2 relative transition-all ${
+                    selectedTripId === booking.id ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-orange-200' : booking.is_quick_purchase ? 'bg-white border-gray-200 hover:border-gray-300' : 'bg-gray-50 border-gray-200 hover:border-gray-300'
                   } ${!isEditMode && booking.is_quick_purchase ? 'cursor-pointer active:scale-[0.98]' : ''}`}
                 >
                   <div className="flex items-start gap-3">
@@ -163,27 +163,31 @@ export default function RecentTripsModal({
 
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-3">
-                        <span className={`px-3 py-1.5 text-white text-sm font-bold rounded-lg shadow-sm ${
+                        <span className={`px-3 py-1.5 text-white text-sm font-bold rounded-lg ${
                           selectedTripId === booking.id ? 'bg-orange-500' : 'bg-blue-600'
                         }`}>
                           {booking.label}
                         </span>
                         {booking.is_quick_purchase && (
-                          <span className="px-2.5 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
+                          <span className="px-2.5 py-1 bg-green-600 text-white text-xs font-bold rounded-md">
                             간편구매
                           </span>
                         )}
-                        <span className="text-xs text-gray-500 font-medium">{booking.train_type}</span>
+                        <span className={`px-2.5 py-1 text-white text-xs font-bold rounded-md ${
+                          booking.train_type === 'KTX' ? 'bg-blue-600' : 'bg-orange-500'
+                        }`}>
+                          {booking.train_type}
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg font-bold text-gray-900">{booking.departure}</span>
-                        <ArrowRight className="w-4 h-4 text-gray-400" />
-                        <span className="text-lg font-bold text-gray-900">{booking.arrival}</span>
+                        <span className="text-2xl font-bold text-gray-900">{booking.departure}</span>
+                        <ArrowRight className="w-5 h-5 text-gray-400" />
+                        <span className="text-2xl font-bold text-gray-900">{booking.arrival}</span>
                       </div>
 
                       {passengerText && (
-                        <div className="text-sm text-gray-600 mb-2">{passengerText}</div>
+                        <div className="text-sm text-gray-600 mb-1">{passengerText}</div>
                       )}
 
                       <div className="text-sm text-gray-500">
@@ -255,7 +259,7 @@ export default function RecentTripsModal({
                                   }}
                                   className="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2 font-medium"
                                 >
-                                  추가
+                                  간편구매 등록
                                 </button>
                               )}
                               <button

@@ -68,7 +68,7 @@ export default function RecentBookingModal({ booking, onClose, onQuickPurchaseSa
 
               <div className="flex items-center gap-3 text-gray-700">
                 <Ticket className="w-5 h-5" />
-                <span className="text-base">일반실 / 창가옆 / 순방향</span>
+                <span className="text-base">일반석 / 창가옆 / 순방향</span>
               </div>
             </div>
           </div>

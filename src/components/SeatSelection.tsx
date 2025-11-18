@@ -167,7 +167,7 @@ export function SeatSelection({ onBack, onBackToHome, onSaveAsQuickBooking, onDe
           </button>
           <div className="text-center">
             <div className="text-lg font-bold text-gray-900">
-              KTX {trainInfo.trainNumber} (일반실)
+              KTX {trainInfo.trainNumber} (일반석)
             </div>
             <div className="text-sm text-gray-600">
               전여 {seats.filter(s => s.isAvailable).length}석 / 전체 {seatsPerCar}석

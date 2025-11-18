@@ -88,7 +88,7 @@ export default function PaymentModal({ bookingData, onClose, onConfirm, onSearch
               <div className="flex-1 text-center">
                 <div className="text-sm text-gray-500 mb-2">출발</div>
                 <div className="text-3xl font-bold text-gray-900 mb-2">{bookingData.departure}</div>
-                <div className="text-lg text-gray-600">{bookingData.departureTime}</div>
+                <div className="text-lg text-gray-600">{bookingData.departureTime.includes('시 이후') ? bookingData.departureTime.replace('시 이후', ':00') : bookingData.departureTime}</div>
               </div>
 
               <div className="mx-6 text-gray-400 text-2xl">→</div>
@@ -108,21 +108,19 @@ export default function PaymentModal({ bookingData, onClose, onConfirm, onSearch
                 <span className="text-sm text-gray-700">{bookingData.date}</span>
               </div>
 
-              {/* Passengers */}
-              <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                <span className="text-sm text-gray-700">{getPassengerText()}</span>
-              </div>
-
               {/* Seat Information */}
               <div className="flex items-center gap-3">
                 <Train className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                <span className="text-sm text-gray-700">
-                  {bookingData.carNumber && bookingData.seatNumbers
-                    ? `${bookingData.carNumber}호차 ${bookingData.seatNumbers} / ${bookingData.seatClass || '일반실'}${bookingData.seatDirection ? ` / ${bookingData.seatDirection}` : ''}`
-                    : `${bookingData.seatClass || '일반실'}${bookingData.seatDirection ? ` / ${bookingData.seatDirection}` : ''}`
-                  }
-                </span>
+                <div className="text-sm text-gray-700">
+                  <div>{getPassengerText()}</div>
+                  <div>
+                    {bookingData.carNumber && bookingData.seatNumbers
+                      ? `${bookingData.carNumber}호차 ${bookingData.seatNumbers} / `
+                      : ''}
+                    {(bookingData.seatClass || '일반석').replace('일반실', '일반석')}
+                    {bookingData.seatDirection ? ` / ${bookingData.seatDirection}` : ''}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

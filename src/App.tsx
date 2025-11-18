@@ -9,7 +9,7 @@ import PassengerPicker from './components/PassengerPicker';
 import PaymentModal from './components/PaymentModal';
 import PaymentSuccessModal from './components/PaymentSuccessModal';
 import { TrainSearchResults } from './components/TrainSearchResults';
-import { QuickBooking, getQuickBookings, getBookingHistory, getQuickPurchases, addQuickBooking, deleteQuickBookings, updateQuickBooking, saveBookingHistory, toggleQuickPurchase } from './lib/supabase';
+import { QuickBooking, getQuickBookings, getBookingHistory, getQuickPurchases, addQuickBooking, deleteQuickBookings, updateQuickBooking, saveBookingHistory, toggleQuickPurchase, supabase } from './lib/supabase';
 
 function App() {
   const [tripType, setTripType] = useState<'oneway' | 'roundtrip'>('oneway');
@@ -90,10 +90,30 @@ function App() {
       setDeparture(booking.departure);
       setArrival(booking.arrival);
 
-      const departureTimeMatch = booking.departure_time.match(/(\d{4}\.\d{2}\.\d{2}\([^)]+\))\s+(\d{2}시 이후)/);
-      if (departureTimeMatch) {
-        setDate(departureTimeMatch[1]);
-        setTime(departureTimeMatch[2]);
+      // Parse departure_time: supports multiple formats
+      // Format 1: "2025.11.24(월) 10시 이후"
+      const format1Match = booking.departure_time.match(/(\d{4}\.\d{2}\.\d{2}\([^)]+\))\s+(\d{1,2})시 이후/);
+      if (format1Match) {
+        setDate(format1Match[1]);
+        setTime(`${format1Match[2]}시 이후`);
+      } else {
+        // Format 2: "2025년 11월 18일 (화) 10:00:00" or similar
+        const format2Match = booking.departure_time.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일\s*\(([^)]+)\)\s*(\d{1,2}):(\d{2})/);
+        if (format2Match) {
+          const [, year, month, day, weekday, hour] = format2Match;
+          setDate(`${year}.${month.padStart(2, '0')}.${day.padStart(2, '0')}(${weekday})`);
+          setTime(`${hour}시 이후`);
+        } else {
+          // Fallback: try to extract any date and time
+          const dateMatch = booking.departure_time.match(/\d{4}\.\d{2}\.\d{2}\([^)]+\)/);
+          if (dateMatch) {
+            setDate(dateMatch[0]);
+          }
+          const timeMatch = booking.departure_time.match(/(\d{1,2})[:시]/);
+          if (timeMatch) {
+            setTime(`${timeMatch[1]}시 이후`);
+          }
+        }
       }
 
       setPassengers({
@@ -106,9 +126,52 @@ function App() {
     }
   };
 
-  const handleQuickPurchaseClick = () => {
-    if (selectedRecentTrip) {
-      setIsPaymentModalOpen(true);
+  const handleQuickPurchaseClick = async () => {
+    if (!selectedRecentTrip) return;
+
+    try {
+      // Parse the date from the format "2025.11.19(수)"
+      const dateMatch = date.match(/(\d{4})\.(\d{2})\.(\d{2})/);
+      if (!dateMatch) return;
+
+      const [, year, month, day] = dateMatch;
+      const dateStr = `${year}-${month}-${day}`;
+
+      // Parse the minimum time from "12시 이후"
+      const timeMatch = time.match(/(\d{1,2})시/);
+      const minHour = timeMatch ? parseInt(timeMatch[1]) : 0;
+
+      // Fetch trains from database
+      const { data: trains, error } = await supabase
+        .from('train_schedules')
+        .select('*')
+        .eq('departure_station', selectedRecentTrip.departure)
+        .eq('arrival_station', selectedRecentTrip.arrival)
+        .eq('travel_date', dateStr)
+        .gte('departure_time', `${minHour.toString().padStart(2, '0')}:00:00`)
+        .order('departure_time', { ascending: true })
+        .limit(1);
+
+      if (error) throw error;
+
+      if (trains && trains.length > 0) {
+        const firstTrain = trains[0];
+        // Set current booking data with actual train info
+        setCurrentBookingData({
+          ...selectedRecentTrip,
+          departureTime: firstTrain.departure_time.substring(0, 5), // "12:00:00" -> "12:00"
+          arrivalTime: firstTrain.arrival_time.substring(0, 5), // "14:38:00" -> "14:38"
+          date: date,
+          trainNumber: firstTrain.train_number,
+          trainType: firstTrain.train_type,
+        });
+        setIsPaymentModalOpen(true);
+      } else {
+        alert('해당 시간대에 운행하는 열차가 없습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to fetch train:', error);
+      alert('열차 정보를 가져오는데 실패했습니다.');
     }
   };
 
@@ -119,17 +182,13 @@ function App() {
 
   const handlePaymentConfirm = (totalPrice: number) => {
     console.log('handlePaymentConfirm called with totalPrice:', totalPrice);
-    console.log('selectedRecentTrip:', selectedRecentTrip);
-    if (selectedRecentTrip) {
+    console.log('currentBookingData:', currentBookingData);
+    if (currentBookingData) {
       const bookingData = {
-        ...selectedRecentTrip,
-        departureTime: time,
-        arrivalTime: '12:30',
-        date: date,
-        trainNumber: '101',
+        ...currentBookingData,
         totalPrice: totalPrice,
       };
-      console.log('Setting currentBookingData:', bookingData);
+      console.log('Setting final booking data:', bookingData);
       setCurrentBookingData(bookingData);
     }
     setIsPaymentModalOpen(false);
@@ -176,7 +235,7 @@ function App() {
 
   const handleSaveQuickPurchase = async (data: QuickPurchaseData, departure?: string, arrival?: string) => {
     console.log('handleSaveQuickPurchase called with:', { data, departure, arrival, editingBooking, selectedTrip });
-    const seatClassText = data.seatClass === 'general' ? '일반실' : '특실';
+    const seatClassText = data.seatClass === 'general' ? '일반석' : '특실';
     const seatDirectionText = data.direction === 'forward' ? '순방향' : '역방향';
 
     const getNextWeekday = (targetWeekday: number) => {
@@ -606,25 +665,25 @@ function App() {
       />
 
       {/* Payment Modal */}
-      {selectedRecentTrip && isPaymentModalOpen && (
+      {isPaymentModalOpen && currentBookingData && (
         <PaymentModal
           bookingData={{
-            departure: selectedRecentTrip.departure,
-            arrival: selectedRecentTrip.arrival,
-            departureTime: time,
-            arrivalTime: '12:30',
-            date: date,
+            departure: currentBookingData.departure,
+            arrival: currentBookingData.arrival,
+            departureTime: currentBookingData.departureTime,
+            arrivalTime: currentBookingData.arrivalTime,
+            date: currentBookingData.date,
             passengers: {
-              adults: selectedRecentTrip.adults,
-              children: selectedRecentTrip.children,
-              infants: selectedRecentTrip.infants,
+              adults: currentBookingData.adults,
+              children: currentBookingData.children,
+              infants: currentBookingData.infants,
             },
-            trainType: selectedRecentTrip.train_type,
-            trainNumber: '101',
-            seatClass: selectedRecentTrip.seat_class,
-            seatDirection: selectedRecentTrip.seat_direction,
-            carNumber: selectedRecentTrip.car_number,
-            seatNumbers: selectedRecentTrip.seat_numbers,
+            trainType: currentBookingData.trainType || currentBookingData.train_type,
+            trainNumber: currentBookingData.trainNumber,
+            seatClass: currentBookingData.seat_class,
+            seatDirection: currentBookingData.seat_direction,
+            carNumber: currentBookingData.car_number,
+            seatNumbers: currentBookingData.seat_numbers,
           }}
           onClose={() => setIsPaymentModalOpen(false)}
           onConfirm={handlePaymentConfirm}
@@ -698,7 +757,11 @@ function App() {
         <div className="fixed inset-0 z-50 bg-white">
           <TrainSearchResults
             onBack={() => setShowTrainSearch(false)}
-            onBackToHome={() => setShowTrainSearch(false)}
+            onBackToHome={() => {
+              setShowTrainSearch(false);
+              setShowDateTimePicker(false);
+              setShowPassengerPicker(false);
+            }}
             onSaveAsQuickBooking={async (bookingData) => {
               const existingBookings = await getQuickBookings();
               const nextNumber = existingBookings.length + 1;

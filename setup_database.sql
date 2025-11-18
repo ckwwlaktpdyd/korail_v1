@@ -75,3 +75,4 @@ INSERT INTO quick_bookings (label, departure, arrival, train_type, order_index) 
 ON CONFLICT DO NOTHING;
 
 
+

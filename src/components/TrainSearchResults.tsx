@@ -52,14 +52,14 @@ export function TrainSearchResults({
   initialPassengerCount = 1
 }: TrainSearchResultsProps) {
   const parseDateString = (dateStr: string) => {
-    const match = dateStr.match(/(\d{4})\.(\d{2})\.(\d{2})/);
+    const match = dateStr.match(/(\d{4})\.(\d{1,2})\.(\d{1,2})/);
     if (match) {
       const year = parseInt(match[1]);
       const month = parseInt(match[2]) - 1;
       const day = parseInt(match[3]);
       return new Date(year, month, day);
     }
-    return new Date(2025, 10, 11);
+    return new Date();
   };
 
   const [departureStation, setDepartureStation] = useState(initialDeparture);
@@ -82,7 +82,7 @@ export function TrainSearchResults({
 
   useEffect(() => {
     applyFilters();
-  }, [trains, seatFilter, trainTypeFilter]);
+  }, [trains, seatFilter, trainTypeFilter, minimumTime]);
 
   const fetchTrains = async () => {
     setLoading(true);
@@ -108,6 +108,18 @@ export function TrainSearchResults({
 
   const applyFilters = () => {
     let filtered = [...trains];
+
+    // 최소 시간 필터
+    if (minimumTime) {
+      const timeMatch = minimumTime.match(/(\d+)시/);
+      if (timeMatch) {
+        const minHour = parseInt(timeMatch[1]);
+        filtered = filtered.filter(t => {
+          const trainHour = parseInt(t.departure_time.substring(0, 2));
+          return trainHour >= minHour;
+        });
+      }
+    }
 
     // 좌석 타입 필터
     if (seatFilter === 'regular') {
@@ -304,70 +316,53 @@ export function TrainSearchResults({
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredTrains.map((train) => {
-                const isBeforeMinimumTime = minimumTime && train.departure_time < minimumTime;
-                const isAvailable = train.has_regular_seats && !isBeforeMinimumTime;
-
-                return (
-                  <div
-                    key={train.id}
-                    className={`bg-white rounded-xl shadow-sm p-4 transition-shadow border border-gray-100 ${
-                      isBeforeMinimumTime ? 'opacity-50' : 'hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      {/* 열차 정보 */}
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="flex flex-col items-start">
-                          <span className={`px-2.5 py-1 text-xs font-bold rounded-md mb-1.5 ${
-                            isBeforeMinimumTime ? 'bg-gray-400 text-white' : 'bg-blue-600 text-white'
-                          }`}>
-                            {train.train_type}
-                          </span>
-                          <span className="text-xs text-gray-500">{train.train_number}</span>
-                        </div>
-
-                        {/* 시간 정보 */}
-                        <div className="flex items-center gap-3">
-                          <div className="text-center">
-                            <div className={`text-base font-bold ${
-                              isBeforeMinimumTime ? 'text-gray-400' : 'text-gray-900'
-                            }`}>
-                              {train.departure_time.substring(0, 5)}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-0.5">{train.departure_station}</div>
-                          </div>
-
-                          <ArrowRight className="w-4 h-4 text-gray-400" />
-
-                          <div className="text-center">
-                            <div className={`text-base font-bold ${
-                              isBeforeMinimumTime ? 'text-gray-400' : 'text-gray-900'
-                            }`}>
-                              {train.arrival_time.substring(0, 5)}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-0.5">{train.arrival_station}</div>
-                          </div>
-                        </div>
+              {filteredTrains.map((train) => (
+                <div
+                  key={train.id}
+                  className="bg-white rounded-xl shadow-sm p-4 transition-shadow border border-gray-100 hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    {/* 열차 정보 */}
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex flex-col items-start">
+                        <span className="px-2.5 py-1 text-xs font-bold rounded-md mb-1.5 bg-blue-600 text-white">
+                          {train.train_type}
+                        </span>
+                        <span className="text-xs text-gray-500">{train.train_number}</span>
                       </div>
 
-                      {/* 가격 버튼 */}
-                      <div className="ml-3">
-                        {isAvailable ? (
-                          <button
-                            onClick={() => handleTrainSelect(train)}
-                            className="px-4 py-2.5 text-base font-bold text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 active:scale-95 transition-all whitespace-nowrap"
-                          >
-                            {formatPrice(train.regular_price)}
-                          </button>
-                        ) : (
-                          <span className="text-gray-400 text-sm">매진</span>
-                        )}
+                      {/* 시간 정보 */}
+                      <div className="flex items-center gap-3">
+                        <div className="text-center">
+                          <div className="text-base font-bold text-gray-900">
+                            {train.departure_time.substring(0, 5)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">{train.departure_station}</div>
+                        </div>
+
+                        <ArrowRight className="w-4 h-4 text-gray-400" />
+
+                        <div className="text-center">
+                          <div className="text-base font-bold text-gray-900">
+                            {train.arrival_time.substring(0, 5)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">{train.arrival_station}</div>
+                        </div>
                       </div>
                     </div>
+
+                    {/* 가격 버튼 */}
+                    <div className="ml-3">
+                      <button
+                        onClick={() => handleTrainSelect(train)}
+                        className="px-4 py-2.5 text-base font-bold text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 active:scale-95 transition-all whitespace-nowrap"
+                      >
+                        {formatPrice(train.regular_price)}
+                      </button>
+                    </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </section>

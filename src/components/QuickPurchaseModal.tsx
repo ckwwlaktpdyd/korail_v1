@@ -13,7 +13,7 @@ interface QuickPurchaseModalProps {
 export default function QuickPurchaseModal({ departure, arrival, onClose, onSaved }: QuickPurchaseModalProps) {
   const [alias, setAlias] = useState('');
   const [selectedTrainType, setSelectedTrainType] = useState('KTX');
-  const [selectedClass, setSelectedClass] = useState('일반실');
+  const [selectedClass, setSelectedClass] = useState('일반석');
   const [departureStation, setDepartureStation] = useState(departure);
   const [arrivalStation, setArrivalStation] = useState(arrival);
   const [selectedPayment, setSelectedPayment] = useState('kakaopay');
@@ -38,7 +38,7 @@ export default function QuickPurchaseModal({ departure, arrival, onClose, onSave
   ];
 
   const classTypes = [
-    { id: '일반실', label: '일반실' },
+    { id: '일반석', label: '일반석' },
     { id: '특실', label: '특실' }
   ];
 

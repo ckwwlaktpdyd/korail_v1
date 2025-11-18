@@ -138,7 +138,7 @@ export default function QuickPurchaseRegistrationModal({
   };
 
   const getSeatText = () => {
-    const seatClassText = seatClass === 'general' ? '일반실' : '특실';
+    const seatClassText = seatClass === 'general' ? '일반석' : '특실';
     const directionText = direction === 'forward' ? '순방향' : '역방향';
     return `${seatClassText} / ${directionText}`;
   };
@@ -356,7 +356,7 @@ export default function QuickPurchaseRegistrationModal({
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      일반실
+                      일반석
                     </button>
                     <button
                       onClick={() => setSeatClass('special')}

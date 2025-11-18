@@ -156,7 +156,7 @@ export default function BookingModal({ bookingData, onClose, onUpdate, onNext }:
 
           {showTrainType && (
             <div className="bg-gray-50 rounded-xl p-4 mb-6 animate-slide-down">
-              {['일반실', '특실', '자유석'].map((type) => (
+              {['일반석', '특실', '자유석'].map((type) => (
                 <button
                   key={type}
                   onClick={() => onUpdate({ ...bookingData, trainType: type })}

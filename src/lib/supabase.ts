@@ -208,6 +208,14 @@ export async function saveBookingHistory(booking: {
   const historyCount = historyData?.length || 0;
   const label = `여정${historyCount + 1}`;
 
+  // Format departure_time to match quick purchase format: "YYYY.MM.DD(요일) HH시 이후"
+  const formatDateTime = (date: string, time: string): string => {
+    // Extract hour from time (e.g., "05:30" -> "05")
+    const hour = time.split(':')[0];
+    // Return formatted string with "시 이후" suffix
+    return `${date} ${hour}시 이후`;
+  };
+
   const insertData = {
     label: label,
     departure: booking.departure,
@@ -216,7 +224,7 @@ export async function saveBookingHistory(booking: {
     adults: booking.passengers.adults,
     children: booking.passengers.children,
     infants: booking.passengers.infants,
-    departure_time: `${booking.date} ${booking.departureTime}`,
+    departure_time: formatDateTime(booking.date, booking.departureTime),
     seat_class: booking.seatClass,
     seat_direction: booking.seatDirection,
     car_number: booking.carNumber,
