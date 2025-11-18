@@ -82,36 +82,33 @@ function App() {
   const handleRecentTripClick = (booking: QuickBooking) => {
     if (selectedRecentTrip?.id === booking.id) {
       setSelectedRecentTrip(null);
-      setDeparture('서울');
-      setArrival('부산');
-      setDate('2025.11.18(화)');
-      setTime('10시 이후');
-      setPassengers({ adults: 1, children: 0, infants: 0 });
     } else {
       setSelectedRecentTrip(booking);
-      setDeparture(booking.departure);
-      setArrival(booking.arrival);
+    }
+    setIsRecentTripsModalOpen(false);
+  };
 
-      // Parse departure_time: supports multiple formats
-      // Format 1: "2025.11.24(월) 10시 이후"
-      const format1Match = booking.departure_time.match(/(\d{4}\.\d{2}\.\d{2}\([^)]+\))\s+(\d{1,2})시 이후/);
+  useEffect(() => {
+    if (selectedRecentTrip) {
+      setDeparture(selectedRecentTrip.departure);
+      setArrival(selectedRecentTrip.arrival);
+
+      const format1Match = selectedRecentTrip.departure_time.match(/(\d{4}\.\d{2}\.\d{2}\([^)]+\))\s+(\d{1,2})시 이후/);
       if (format1Match) {
         setDate(format1Match[1]);
         setTime(`${format1Match[2]}시 이후`);
       } else {
-        // Format 2: "2025년 11월 18일 (화) 10:00:00" or similar
-        const format2Match = booking.departure_time.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일\s*\(([^)]+)\)\s*(\d{1,2}):(\d{2})/);
+        const format2Match = selectedRecentTrip.departure_time.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일\s*\(([^)]+)\)\s*(\d{1,2}):(\d{2})/);
         if (format2Match) {
           const [, year, month, day, weekday, hour] = format2Match;
           setDate(`${year}.${month.padStart(2, '0')}.${day.padStart(2, '0')}(${weekday})`);
           setTime(`${hour}시 이후`);
         } else {
-          // Fallback: try to extract any date and time
-          const dateMatch = booking.departure_time.match(/\d{4}\.\d{2}\.\d{2}\([^)]+\)/);
+          const dateMatch = selectedRecentTrip.departure_time.match(/\d{4}\.\d{2}\.\d{2}\([^)]+\)/);
           if (dateMatch) {
             setDate(dateMatch[0]);
           }
-          const timeMatch = booking.departure_time.match(/(\d{1,2})[:시]/);
+          const timeMatch = selectedRecentTrip.departure_time.match(/(\d{1,2})[:시]/);
           if (timeMatch) {
             setTime(`${timeMatch[1]}시 이후`);
           }
@@ -119,14 +116,18 @@ function App() {
       }
 
       setPassengers({
-        adults: booking.adults,
-        children: booking.children,
-        infants: booking.infants,
+        adults: selectedRecentTrip.adults,
+        children: selectedRecentTrip.children,
+        infants: selectedRecentTrip.infants,
       });
-
-      setIsRecentTripsModalOpen(false);
+    } else {
+      setDeparture('서울');
+      setArrival('부산');
+      setDate('2025.11.18(화)');
+      setTime('10시 이후');
+      setPassengers({ adults: 1, children: 0, infants: 0 });
     }
-  };
+  }, [selectedRecentTrip]);
 
   const handleQuickPurchaseClick = async () => {
     if (!selectedRecentTrip) return;
