@@ -110,6 +110,28 @@ function App() {
         setIsRegistrationSuccessModalOpen(true);
       }
       
+      // 간편구매 활성화 상태 (홈 화면)
+      if (page === 'home-quickpurchase') {
+        const dummyRecentTrip: QuickBooking = {
+          id: 'dummy-1',
+          label: '여정 1',
+          departure: '서울',
+          arrival: '부산',
+          departure_time: '2025.11.11(화) 10시 이후',
+          adults: 1,
+          children: 0,
+          infants: 0,
+          is_quick_purchase: true,
+          train_type: 'KTX',
+          seat_class: '일반석',
+          seat_direction: '순방향',
+          car_number: null,
+          seat_numbers: null,
+          created_at: new Date().toISOString(),
+        };
+        setSelectedRecentTrip(dummyRecentTrip);
+      }
+      
       // 페이지 전환
       if (page === 'search') {
         setShowTrainSearch(true);
