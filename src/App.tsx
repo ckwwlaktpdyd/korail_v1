@@ -106,6 +106,9 @@ function App() {
       if (modal === 'passenger') {
         setShowPassengerPicker(true);
       }
+      if (modal === 'quickpurchase-success') {
+        setIsRegistrationSuccessModalOpen(true);
+      }
       
       // 페이지 전환
       if (page === 'search') {
