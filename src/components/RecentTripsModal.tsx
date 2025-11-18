@@ -148,14 +148,20 @@ export default function RecentTripsModal({
 
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-3">
-                        <span className={`px-3 py-1.5 text-white text-sm font-bold rounded-lg ${
-                          selectedTripId === booking.id ? 'bg-orange-500' : 'bg-blue-600'
-                        }`}>
-                          {booking.label}
-                        </span>
-                        {booking.is_quick_purchase && (
+                        {booking.label && booking.label.trim() && (
+                          <span className={`px-3 py-1.5 text-white text-sm font-bold rounded-lg ${
+                            selectedTripId === booking.id ? 'bg-orange-500' : 'bg-blue-600'
+                          }`}>
+                            {booking.label}
+                          </span>
+                        )}
+                        {booking.is_quick_purchase ? (
                           <span className="px-2.5 py-1 bg-green-600 text-white text-xs font-bold rounded-md">
                             간편구매
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 border border-gray-400 text-gray-600 text-xs font-medium rounded-full">
+                            일반예매
                           </span>
                         )}
                         <span className={`px-2.5 py-1 text-white text-xs font-bold rounded-md ${

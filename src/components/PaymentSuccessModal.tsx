@@ -158,24 +158,26 @@ export default function PaymentSuccessModal({ onClose, onSaveAsQuickBooking, onD
 
               {/* Journey label and Star */}
               <div className="flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    if (onOpenQuickPurchase && bookingData) {
-                      onOpenQuickPurchase({
-                        departure: bookingData.departure,
-                        arrival: bookingData.arrival,
-                        trainType: bookingData.trainType,
-                        passengers: bookingData.passengers,
-                      });
-                    }
-                  }}
-                  className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
-                >
-                  여정 1
-                </button>
+                {isSaved && (
+                  <button
+                    onClick={() => {
+                      if (onOpenQuickPurchase && bookingData) {
+                        onOpenQuickPurchase({
+                          departure: bookingData.departure,
+                          arrival: bookingData.arrival,
+                          trainType: bookingData.trainType,
+                          passengers: bookingData.passengers,
+                        });
+                      }
+                    }}
+                    className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
+                  >
+                    여정 1
+                  </button>
+                )}
                 <button
                   onClick={handleStarToggle}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-all active:scale-95"
+                  className={`p-2 hover:bg-gray-100 rounded-full transition-all active:scale-95 ${!isSaved ? 'ml-auto' : ''}`}
                 >
                   {isSaved ? (
                     <Star className="w-8 h-8 fill-yellow-400 text-yellow-400 transition-all" />

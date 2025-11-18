@@ -218,18 +218,20 @@ export default function RecentBookingsListModal({ bookings: initialBookings, onC
                         disabled={editMode}
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-gray-900">{booking.departure}</span>
-                          <ArrowRight className="w-5 h-5 text-gray-400" />
-                          <span className="text-lg font-bold text-gray-900">{booking.arrival}</span>
-                          <span className="px-2.5 py-1 bg-blue-600 text-white text-xs font-bold rounded-full">
-                            {booking.train_type}
-                          </span>
-                          {hasQuickPurchaseData(booking) && (
-                            <span className="px-2.5 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
+                          <div className="flex items-center gap-2 flex-wrap">
+                          {booking.label && booking.label.trim() && (
+                            <span className="px-3 py-1.5 bg-blue-600 text-white text-sm font-bold rounded-lg">
+                              {booking.label}
+                            </span>
+                          )}
+                          {booking.is_quick_purchase && (
+                            <span className="px-2.5 py-1 bg-green-600 text-white text-xs font-bold rounded-md">
                               간편구매
                             </span>
                           )}
+                          <span className="text-lg font-bold text-gray-900">{booking.departure}</span>
+                          <ArrowRight className="w-5 h-5 text-gray-400" />
+                          <span className="text-lg font-bold text-gray-900">{booking.arrival}</span>
                         </div>
                           <div className="flex items-center gap-2">
                             {!editMode && (

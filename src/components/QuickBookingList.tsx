@@ -79,8 +79,10 @@ export default function QuickBookingList({ onSelectBooking, onQuickPurchaseSaved
   };
 
   const hasQuickPurchaseData = (booking: QuickBooking) => {
-    // Quick purchase data exists if there's a payment method and departure time
-    return booking.payment_method && booking.departure_time;
+    // Check if this booking is registered as a quick purchase
+    const result = booking.is_quick_purchase === true;
+    console.log('hasQuickPurchaseData:', booking.departure, '→', booking.arrival, 'is_quick_purchase:', booking.is_quick_purchase, 'result:', result);
+    return result;
   };
 
   if (isLoading) {
@@ -111,6 +113,7 @@ export default function QuickBookingList({ onSelectBooking, onQuickPurchaseSaved
           <div className="flex gap-4 pb-2">
             {bookings.map((booking) => {
               const isQuickPurchase = hasQuickPurchaseData(booking);
+              console.log('Booking:', booking.departure, '→', booking.arrival, 'is_quick_purchase:', booking.is_quick_purchase, 'isQuickPurchase:', isQuickPurchase, 'label:', booking.label);
 
               return (
               <div key={booking.id} className="relative flex-shrink-0 w-[180px]">
@@ -122,11 +125,13 @@ export default function QuickBookingList({ onSelectBooking, onQuickPurchaseSaved
                       onSelectBooking(booking);
                     }}
                   >
-                    <div className="inline-block px-3 py-1 border-2 border-blue-600 text-blue-600 text-xs font-bold rounded-lg mb-3">
-                      {booking.label}
-                    </div>
+                    {booking.label && booking.label.trim() && (
+                      <div className="inline-block px-3 py-1 border-2 border-blue-600 text-blue-600 text-xs font-bold rounded-lg mb-3">
+                        {booking.label}
+                      </div>
+                    )}
 
-                    <div className="mb-3">
+                    <div className={booking.label && booking.label.trim() ? "mb-3" : "mb-0"}>
                       <div className="text-lg font-bold text-gray-900">
                         {booking.departure} → {booking.arrival}
                       </div>
@@ -140,22 +145,18 @@ export default function QuickBookingList({ onSelectBooking, onQuickPurchaseSaved
                   </div>
                 ) : (
                   <div
-                    className="group bg-white rounded-2xl p-5 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer mb-3"
+                    className="group bg-gray-50 rounded-2xl p-5 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer mb-3"
                     onClick={() => {
                       setActiveBookingId(activeBookingId === booking.id ? null : booking.id);
                       onSelectBooking(booking);
                     }}
                   >
-                    <div className="inline-block px-3 py-1 border-2 border-blue-600 text-blue-600 text-xs font-bold rounded-lg mb-3">
-                      {booking.label}
-                    </div>
-
                     <div className="text-lg font-bold text-gray-900 mb-3">
                       {booking.departure} → {booking.arrival}
                     </div>
 
-                    <div className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded">
-                      간편구매 화 10시 이후
+                    <div className="text-sm text-gray-600">
+                      {booking.departure_time || '2025.11.19(수)'}
                     </div>
                   </div>
                 )}

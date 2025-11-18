@@ -200,13 +200,8 @@ export async function saveBookingHistory(booking: {
   console.log('saveBookingHistory called with:', booking);
   const maxOrder = await getMaxOrderIndex();
 
-  const { data: historyData } = await supabase
-    .from('quick_bookings')
-    .select('id')
-    .eq('is_quick_purchase', false);
-
-  const historyCount = historyData?.length || 0;
-  const label = `여정${historyCount + 1}`;
+  // General booking history doesn't need labels
+  const label = '';
 
   // Format departure_time to match quick purchase format: "YYYY.MM.DD(요일) HH시 이후"
   const formatDateTime = (date: string, time: string): string => {

@@ -10,7 +10,6 @@ import PassengerPicker from './components/PassengerPicker';
 import PaymentModal from './components/PaymentModal';
 import PaymentSuccessModal from './components/PaymentSuccessModal';
 import { TrainSearchResults } from './components/TrainSearchResults';
-import { SeatSelection } from './components/SeatSelection';
 import { QuickBooking, getQuickBookings, getBookingHistory, getQuickPurchases, addQuickBooking, deleteQuickBookings, updateQuickBooking, saveBookingHistory, toggleQuickPurchase, supabase } from './lib/supabase';
 
 function App() {
@@ -36,7 +35,6 @@ function App() {
   const [selectedRecentTrip, setSelectedRecentTrip] = useState<QuickBooking | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [showTrainSearch, setShowTrainSearch] = useState(false);
-  const [showSeatSelection, setShowSeatSelection] = useState(false);
 
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -44,102 +42,6 @@ function App() {
     loadQuickBookings();
     loadBookingHistory();
     loadQuickPurchases();
-  }, []);
-
-  // URL parameter로 초기 상태 제어 (Figma 임포트용)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const modal = params.get('modal');
-    const page = params.get('page');
-    
-    // 기본 데이터 설정
-    if (modal || page) {
-      setDeparture('서울');
-      setArrival('부산');
-      setDate('2025.11.19(수)');
-      setTime('10시 이후');
-      setPassengers({ adults: 1, children: 0, infants: 0 });
-      
-      // 간편구매/결제 모달용 더미 데이터
-      const dummyBookingData = {
-        departure: '서울',
-        arrival: '부산',
-        departureTime: '08:00',
-        arrivalTime: '10:38',
-        date: '2025.11.19(수)',
-        trainNumber: '001',
-        trainType: 'KTX',
-        train_type: 'KTX',
-        adults: 1,
-        children: 0,
-        infants: 0,
-        seat_class: '일반석',
-        seat_direction: '순방향',
-        car_number: 4,
-        seat_numbers: '3, 4',
-        totalPrice: 59800,
-      };
-      
-      // 모달 열기
-      if (modal === 'station') {
-        setIsStationPickerOpen(true);
-        setStationPickerMode('departure');
-      }
-      if (modal === 'recent') {
-        setIsRecentTripsModalOpen(true);
-      }
-      if (modal === 'payment') {
-        setCurrentBookingData(dummyBookingData);
-        setIsPaymentModalOpen(true);
-      }
-      if (modal === 'quickpurchase') {
-        setSelectedTrip({ departure: '서울', arrival: '부산' });
-        setIsRegistrationModalOpen(true);
-      }
-      if (modal === 'success') {
-        setCurrentBookingData(dummyBookingData);
-        setIsPaymentSuccessModalOpen(true);
-      }
-      if (modal === 'datetime') {
-        setShowDateTimePicker(true);
-      }
-      if (modal === 'passenger') {
-        setShowPassengerPicker(true);
-      }
-      if (modal === 'quickpurchase-success') {
-        setIsRegistrationSuccessModalOpen(true);
-      }
-      
-      // 간편구매 활성화 상태 (홈 화면)
-      if (page === 'home-quickpurchase') {
-        const dummyRecentTrip: QuickBooking = {
-          id: 'dummy-1',
-          label: '여정 1',
-          departure: '서울',
-          arrival: '부산',
-          departure_time: '2025.11.11(화) 10시 이후',
-          adults: 1,
-          children: 0,
-          infants: 0,
-          is_quick_purchase: true,
-          train_type: 'KTX',
-          seat_class: '일반석',
-          seat_direction: '순방향',
-          car_number: null,
-          seat_numbers: null,
-          created_at: new Date().toISOString(),
-        };
-        setSelectedRecentTrip(dummyRecentTrip);
-      }
-      
-      // 페이지 전환
-      if (page === 'search') {
-        setShowTrainSearch(true);
-      }
-      if (page === 'seat') {
-        setShowSeatSelection(true);
-      }
-    }
   }, []);
 
   const loadQuickBookings = async () => {
@@ -651,16 +553,22 @@ function App() {
                   } ${booking.is_quick_purchase ? 'cursor-pointer active:scale-[0.98]' : ''}`}
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <div className={`inline-block px-3 py-1 border-2 text-xs font-bold rounded-lg ${
-                      selectedRecentTrip?.id === booking.id
-                        ? 'border-orange-500 text-orange-600'
-                        : 'border-blue-600 text-blue-600'
-                    }`}>
-                      {booking.label}
-                    </div>
-                    {booking.is_quick_purchase && (
+                    {booking.label && booking.label.trim() && (
+                      <div className={`inline-block px-3 py-1.5 text-white text-sm font-bold rounded-lg ${
+                        selectedRecentTrip?.id === booking.id
+                          ? 'bg-orange-500'
+                          : 'bg-blue-600'
+                      }`}>
+                        {booking.label}
+                      </div>
+                    )}
+                    {booking.is_quick_purchase ? (
                       <div className="inline-block px-2.5 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
                         간편구매
+                      </div>
+                    ) : (
+                      <div className="inline-block px-2.5 py-1 border border-gray-400 text-gray-600 text-xs font-medium rounded-full">
+                        일반예매
                       </div>
                     )}
                   </div>
@@ -898,36 +806,6 @@ function App() {
             initialDate={date}
             initialTime={time !== '선택' ? time : undefined}
             initialPassengerCount={passengers.adults + passengers.children + passengers.infants}
-          />
-        </div>
-      )}
-
-      {/* Seat Selection */}
-      {showSeatSelection && (
-        <div className="fixed inset-0 z-50 bg-white">
-          <SeatSelection
-            onBack={() => setShowSeatSelection(false)}
-            onBackToHome={() => {
-              setShowSeatSelection(false);
-            }}
-            onSaveBookingHistory={handleSaveBookingHistory}
-            onToggleQuickPurchase={async (id: string, isQuickPurchase: boolean) => {
-              await toggleQuickPurchase(id, isQuickPurchase);
-              await loadQuickBookings();
-              await loadBookingHistory();
-              await loadQuickPurchases();
-            }}
-            trainInfo={{
-              trainType: 'KTX',
-              trainNumber: '001',
-              departureStation: '서울',
-              arrivalStation: '부산',
-              departureTime: '08:00',
-              arrivalTime: '10:38',
-              date: '2025년 11월 19일 (수)',
-              price: 59800,
-              passengerCount: 1,
-            }}
           />
         </div>
       )}
