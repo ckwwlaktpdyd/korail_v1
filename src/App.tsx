@@ -569,7 +569,7 @@ function App() {
                       </div>
                     ) : (
                       <div className="inline-block px-2.5 py-1 border border-gray-400 text-gray-600 text-xs font-medium rounded-full">
-                        일반예매
+                        최근예매
                       </div>
                     )}
                   </div>

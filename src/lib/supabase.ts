@@ -157,6 +157,7 @@ export async function getBookingHistory(): Promise<QuickBooking[]> {
   const { data, error } = await supabase
     .from('quick_bookings')
     .select('*')
+    .eq('booking_status', 'completed')
     .order('created_at', { ascending: false });
 
   if (error) {
