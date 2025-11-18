@@ -132,24 +132,9 @@ export default function RecentTripsModal({
               return (
                 <div
                   key={booking.id}
-                  onClick={() => {
-                    if (!isEditMode && booking.is_quick_purchase) {
-                      onTripClick(booking);
-                    }
-                  }}
-                  onTouchStart={() => {
-                    if (!isEditMode && booking.is_quick_purchase) {
-                      onTripLongPressStart(booking.departure, booking.arrival);
-                    }
-                  }}
-                  onTouchEnd={() => {
-                    if (!isEditMode && booking.is_quick_purchase) {
-                      onTripLongPressEnd();
-                    }
-                  }}
                   className={`rounded-xl p-4 shadow-sm border-2 relative transition-all ${
                     selectedTripId === booking.id ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-orange-200' : booking.is_quick_purchase ? 'bg-white border-gray-200 hover:border-gray-300' : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                  } ${!isEditMode && booking.is_quick_purchase ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+                  }`}
                 >
                   <div className="flex items-start gap-3">
                     {isEditMode && (

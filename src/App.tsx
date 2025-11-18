@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bell, User, ArrowRight, Clock, Users, Home, Ticket, Map, MoreHorizontal, Info, Zap } from 'lucide-react';
 import QuickPurchaseRegistrationModal, { QuickPurchaseData } from './components/QuickPurchaseRegistrationModal';
+import QuickPurchaseRegistrationSuccessModal from './components/QuickPurchaseRegistrationSuccessModal';
 import QuickPurchaseModal from './components/QuickPurchaseModal';
 import RecentTripsModal from './components/RecentTripsModal';
 import StationPickerModal from './components/StationPickerModal';
@@ -22,6 +23,7 @@ function App() {
   const [showPassengerPicker, setShowPassengerPicker] = useState(false);
 
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
+  const [isRegistrationSuccessModalOpen, setIsRegistrationSuccessModalOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<{ departure: string; arrival: string } | null>(null);
   const [quickBookings, setQuickBookings] = useState<QuickBooking[]>([]);
   const [bookingHistory, setBookingHistory] = useState<QuickBooking[]>([]);
@@ -311,6 +313,8 @@ function App() {
     await loadBookingHistory();
     await loadQuickPurchases();
     setIsRegistrationModalOpen(false);
+    setIsRecentTripsModalOpen(false);
+    setIsRegistrationSuccessModalOpen(true);
   };
 
   const handleDeleteBookings = async (ids: string[]) => {
@@ -659,8 +663,6 @@ function App() {
           await loadQuickPurchases();
           await loadQuickBookings();
           await loadBookingHistory();
-          setIsRecentTripsModalOpen(false);
-          setIsQuickPurchaseSuccessOpen(true);
         }}
       />
 
@@ -816,6 +818,13 @@ function App() {
             setIsQuickPurchaseModalOpen(false);
             setQuickPurchaseData(null);
           }}
+        />
+      )}
+
+      {/* Quick Purchase Registration Success Modal */}
+      {isRegistrationSuccessModalOpen && (
+        <QuickPurchaseRegistrationSuccessModal
+          onClose={() => setIsRegistrationSuccessModalOpen(false)}
         />
       )}
     </div>
